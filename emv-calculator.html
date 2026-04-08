@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Real-World EMV Calculator</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #eaf2f8;
+    color: #1a2a3a;
+    min-height: 100vh;
+    padding: 16px;
+  }
+  h1 { text-align: center; color: #1a5276; font-size: 1.5rem; margin-bottom: 4px; }
+  .subtitle { text-align: center; color: #555; font-size: 0.9rem; margin-bottom: 16px; }
+
+  .scenario-row {
+    display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;
+    margin-bottom: 18px; align-items: center;
+  }
+  label { font-size: 0.88rem; font-weight: 600; color: #1a5276; }
+  select {
+    font-family: inherit; border-radius: 8px; border: 2px solid #2e86c1;
+    padding: 7px 12px; font-size: 0.9rem; background: #fff;
+    color: #1a5276; font-weight: 700; cursor: pointer;
+  }
+
+  .options-grid {
+    display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;
+    margin-bottom: 18px;
+  }
+
+  .option-card {
+    background: #fff; border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(26,82,118,0.10);
+    padding: 18px; flex: 1 1 280px; max-width: 360px;
+    border-top: 5px solid #2e86c1;
+    transition: box-shadow 0.3s;
+  }
+  .option-card.winner { border-top-color: #27ae60; box-shadow: 0 4px 20px rgba(39,174,96,0.18); }
+  .option-card.loser  { border-top-color: #b0bec5; opacity: 0.88; }
+
+  .option-title {
+    font-size: 1rem; font-weight: 700; color: #1a5276; margin-bottom: 4px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .winner-badge {
+    display: none; background: #27ae60; color: #fff;
+    border-radius: 12px; font-size: 0.72rem; padding: 2px 9px; font-weight: 700;
+  }
+  .option-card.winner .winner-badge { display: inline-block; }
+  .option-desc { font-size: 0.8rem; color: #777; margin-bottom: 12px; }
+
+  .outcome-row {
+    display: grid; grid-template-columns: 1fr 80px 80px;
+    gap: 4px 8px; align-items: center; margin-bottom: 6px;
+  }
+  .out-label-head, .out-col-head {
+    font-size: 0.72rem; font-weight: 700; color: #888;
+    text-transform: uppercase; letter-spacing: 0.04em; padding-bottom: 3px;
+  }
+  .out-label { font-size: 0.82rem; color: #555; padding: 3px 0; }
+  input[type=number] {
+    border: 1.5px solid #d0dbe8; border-radius: 6px;
+    padding: 5px 6px; font-size: 0.85rem; font-family: inherit;
+    text-align: center; font-weight: 600; color: #1a5276; background: #fff; width: 100%;
+  }
+  input[type=number]:focus { outline: none; border-color: #2e86c1; }
+  input.neg { color: #e74c3c; }
+
+  .emv-result {
+    margin-top: 12px; text-align: center; padding: 12px;
+    background: #eaf2f8; border-radius: 10px;
+  }
+  .emv-lbl { font-size: 0.78rem; color: #777; }
+  .emv-num { font-size: 1.6rem; font-weight: 900; color: #1a5276; }
+  .option-card.winner .emv-num { color: #1e8449; }
+
+  /* visual bars */
+  .bars-card {
+    background: #fff; border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(26,82,118,0.10);
+    padding: 20px; margin-bottom: 16px;
+  }
+  .bars-title { font-size: 1rem; font-weight: 700; color: #1a5276; margin-bottom: 14px; }
+  .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .bar-name { font-size: 0.85rem; font-weight: 700; color: #1a5276; min-width: 120px; }
+  .bar-track {
+    flex: 1; height: 30px; background: #eaf2f8; border-radius: 8px;
+    overflow: hidden; position: relative;
+  }
+  .bar-fill {
+    height: 100%; border-radius: 8px; min-width: 2px;
+    display: flex; align-items: center; justify-content: flex-end;
+    padding-right: 10px; font-size: 0.82rem; font-weight: 700; color: #fff;
+    transition: width 0.4s ease, background 0.3s;
+  }
+  .bar-neg {
+    height: 100%; border-radius: 8px; background: #e74c3c; min-width: 2px;
+    display: flex; align-items: center; padding-left: 8px;
+    font-size: 0.82rem; font-weight: 700; color: #fff;
+    transition: width 0.4s ease;
+  }
+
+  /* verdict */
+  .verdict-card {
+    background: #fff; border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(26,82,118,0.10);
+    padding: 20px; margin-bottom: 16px;
+  }
+  .verdict-line {
+    text-align: center; font-size: 1.1rem; font-weight: 800;
+    color: #1a5276; margin-bottom: 16px; padding: 12px;
+    background: #eaf2f8; border-radius: 10px;
+  }
+
+  /* breakeven */
+  .breakeven-section { margin-top: 16px; }
+  .breakeven-title { font-size: 0.9rem; font-weight: 700; color: #1a5276; margin-bottom: 6px; }
+  .breakeven-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  input[type=range] { flex: 1; accent-color: #e67e22; min-width: 120px; }
+  .be-label { font-size: 0.82rem; color: #555; min-width: 160px; }
+  .be-value { font-size: 0.88rem; font-weight: 700; color: #e67e22; min-width: 50px; }
+  .be-result { font-size: 0.82rem; color: #555; margin-top: 6px; }
+  .be-result strong { color: #1a5276; }
+
+  button {
+    border: none; border-radius: 8px; cursor: pointer;
+    font-family: inherit; font-weight: 700; font-size: 0.88rem;
+    padding: 9px 20px; transition: filter 0.15s, transform 0.1s;
+  }
+  button:hover { filter: brightness(1.08); }
+  button:active { transform: scale(0.97); }
+  .btn-calc { background: #27ae60; color: #fff; }
+
+  .calc-row { text-align: center; margin-bottom: 16px; }
+</style>
+</head>
+<body>
+<h1>Real-World EMV Calculator</h1>
+<p class="subtitle">Compare two options side-by-side and find which has the higher expected value.</p>
+
+<div class="scenario-row">
+  <label for="scenarioSel">Scenario:</label>
+  <select id="scenarioSel" onchange="loadScenario()">
+    <option value="insurance">Insurance</option>
+    <option value="study">Study Decision</option>
+    <option value="lottery">Lottery</option>
+    <option value="investment">Investment</option>
+    <option value="custom">Custom</option>
+  </select>
+</div>
+
+<div class="options-grid">
+  <!-- OPTION A -->
+  <div class="option-card" id="cardA">
+    <div class="option-title">
+      <span id="titleA">Option A</span>
+      <span class="winner-badge">BETTER CHOICE</span>
+    </div>
+    <div class="option-desc" id="descA">Enter outcomes below</div>
+    <div class="outcome-row">
+      <div class="out-label-head">Outcome</div>
+      <div class="out-col-head" style="text-align:center">Prob</div>
+      <div class="out-col-head" style="text-align:center">Payoff $</div>
+    </div>
+    <div id="outcomesA"></div>
+    <div class="emv-result">
+      <div class="emv-lbl">Expected Value</div>
+      <div class="emv-num" id="emvA">—</div>
+    </div>
+  </div>
+
+  <!-- OPTION B -->
+  <div class="option-card" id="cardB">
+    <div class="option-title">
+      <span id="titleB">Option B</span>
+      <span class="winner-badge">BETTER CHOICE</span>
+    </div>
+    <div class="option-desc" id="descB">Enter outcomes below</div>
+    <div class="outcome-row">
+      <div class="out-label-head">Outcome</div>
+      <div class="out-col-head" style="text-align:center">Prob</div>
+      <div class="out-col-head" style="text-align:center">Payoff $</div>
+    </div>
+    <div id="outcomesB"></div>
+    <div class="emv-result">
+      <div class="emv-lbl">Expected Value</div>
+      <div class="emv-num" id="emvB">—</div>
+    </div>
+  </div>
+</div>
+
+<div class="calc-row">
+  <button class="btn-calc" onclick="calculate()">Calculate EMV</button>
+</div>
+
+<!-- VISUAL BARS -->
+<div class="bars-card" id="barsSection" style="display:none">
+  <div class="bars-title">EMV Comparison</div>
+  <div class="bar-row">
+    <div class="bar-name" id="barNameA">Option A</div>
+    <div class="bar-track"><div class="bar-fill" id="barFillA" style="width:0%;background:#2e86c1">—</div></div>
+  </div>
+  <div class="bar-row">
+    <div class="bar-name" id="barNameB">Option B</div>
+    <div class="bar-track"><div class="bar-fill" id="barFillB" style="width:0%;background:#1a5276">—</div></div>
+  </div>
+</div>
+
+<!-- VERDICT -->
+<div class="verdict-card" id="verdictSection" style="display:none">
+  <div class="verdict-line" id="verdictLine">—</div>
+
+  <!-- BREAKEVEN -->
+  <div class="breakeven-section" id="breakevenSection">
+    <div class="breakeven-title">Breakeven Finder</div>
+    <div class="be-label" id="beLabel">Adjust probability of success for Option A:</div>
+    <div class="breakeven-row">
+      <input type="range" id="beSlider" min="0.01" max="0.99" step="0.01" value="0.5" oninput="updateBreakeven()">
+      <div class="be-value" id="beVal">50%</div>
+    </div>
+    <div class="be-result" id="beResult">—</div>
+  </div>
+</div>
+
+<script>
+const scenarios = {
+  insurance: {
+    titleA: 'Buy Insurance', titleB: "Don't Buy Insurance",
+    descA: 'Pay premium, covered for loss', descB: 'Keep premium, risk the loss',
+    outcomesA: [
+      { label: 'Claim (loss covered)', prob: 0.05, payoff: -200 },
+      { label: 'No claim',             prob: 0.95, payoff: -200 },
+    ],
+    outcomesB: [
+      { label: 'Loss occurs',    prob: 0.05, payoff: -5000 },
+      { label: 'No loss',        prob: 0.95, payoff: 0 },
+    ],
+    beVarLabel: 'Adjust probability of a loss:',
+    beVarSide: 'B', beVarOutcome: 0,
+  },
+  study: {
+    titleA: 'Study Hard', titleB: "Don't Study",
+    descA: 'Spend 4 hours studying', descB: 'Use time for other things',
+    outcomesA: [
+      { label: 'Get an A',  prob: 0.75, payoff: 100 },
+      { label: 'Get a B',  prob: 0.20, payoff: 80 },
+      { label: 'Get a C',  prob: 0.05, payoff: 60 },
+    ],
+    outcomesB: [
+      { label: 'Get an A',  prob: 0.10, payoff: 100 },
+      { label: 'Get a B',  prob: 0.30, payoff: 80 },
+      { label: 'Get a C',  prob: 0.60, payoff: 60 },
+    ],
+    beVarLabel: "Adjust prob of A without studying:",
+    beVarSide: 'B', beVarOutcome: 0,
+  },
+  lottery: {
+    titleA: 'Buy Lottery Ticket ($2)', titleB: 'Keep the $2',
+    descA: 'Tiny chance at big prize', descB: 'Guaranteed $2',
+    outcomesA: [
+      { label: 'Win jackpot', prob: 0.000001, payoff: 1000000 },
+      { label: 'Win nothing', prob: 0.999999, payoff: -2 },
+    ],
+    outcomesB: [
+      { label: 'Keep money', prob: 1.0, payoff: 2 },
+    ],
+    beVarLabel: 'Adjust win probability:',
+    beVarSide: 'A', beVarOutcome: 0,
+  },
+  investment: {
+    titleA: 'Stock Investment', titleB: 'Savings Account',
+    descA: 'Higher risk, higher potential', descB: 'Low risk, guaranteed return',
+    outcomesA: [
+      { label: 'Market up',   prob: 0.50, payoff: 300 },
+      { label: 'Market flat', prob: 0.30, payoff: 50 },
+      { label: 'Market down', prob: 0.20, payoff: -200 },
+    ],
+    outcomesB: [
+      { label: 'Interest earned', prob: 1.0, payoff: 45 },
+    ],
+    beVarLabel: 'Adjust probability market goes up:',
+    beVarSide: 'A', beVarOutcome: 0,
+  },
+  custom: {
+    titleA: 'Option A', titleB: 'Option B',
+    descA: 'Describe your first option', descB: 'Describe your second option',
+    outcomesA: [
+      { label: 'Outcome 1', prob: 0.5, payoff: 100 },
+      { label: 'Outcome 2', prob: 0.5, payoff: -20 },
+    ],
+    outcomesB: [
+      { label: 'Outcome 1', prob: 0.7, payoff: 50 },
+      { label: 'Outcome 2', prob: 0.3, payoff: 10 },
+    ],
+    beVarLabel: 'Adjust first outcome probability for Option A:',
+    beVarSide: 'A', beVarOutcome: 0,
+  },
+};
+
+let currentScenario = 'insurance';
+
+function loadScenario() {
+  currentScenario = document.getElementById('scenarioSel').value;
+  const sc = scenarios[currentScenario];
+
+  document.getElementById('titleA').textContent = sc.titleA;
+  document.getElementById('titleB').textContent = sc.titleB;
+  document.getElementById('descA').textContent  = sc.descA;
+  document.getElementById('descB').textContent  = sc.descB;
+
+  renderOutcomes('A', sc.outcomesA);
+  renderOutcomes('B', sc.outcomesB);
+
+  document.getElementById('barsSection').style.display = 'none';
+  document.getElementById('verdictSection').style.display = 'none';
+  document.getElementById('cardA').className = 'option-card';
+  document.getElementById('cardB').className = 'option-card';
+  document.getElementById('emvA').textContent = '—';
+  document.getElementById('emvB').textContent = '—';
+}
+
+function renderOutcomes(side, outcomes) {
+  const container = document.getElementById('outcomes' + side);
+  let html = '';
+  outcomes.forEach((o, i) => {
+    html += `<div class="outcome-row">
+      <input type="text" value="${o.label}" style="border:1.5px solid #d0dbe8;border-radius:6px;padding:5px 6px;font-size:0.82rem;font-family:inherit;color:#555;width:100%"
+        id="lbl${side}${i}">
+      <input type="number" min="0" max="1" step="0.01" value="${o.prob}"
+        id="prob${side}${i}" oninput="colorNum(this)">
+      <input type="number" step="1" value="${o.payoff}"
+        id="pay${side}${i}" oninput="colorNum(this)" class="${o.payoff < 0 ? 'neg' : ''}">
+    </div>`;
+  });
+  container.innerHTML = html;
+}
+
+function colorNum(inp) {
+  inp.classList.toggle('neg', parseFloat(inp.value) < 0);
+}
+
+function getEMV(side) {
+  const container = document.getElementById('outcomes' + side);
+  const rows = container.querySelectorAll('.outcome-row');
+  let emv = 0;
+  rows.forEach((_, i) => {
+    const p = parseFloat(document.getElementById('prob'+side+i)?.value) || 0;
+    const v = parseFloat(document.getElementById('pay'+side+i)?.value) || 0;
+    emv += p * v;
+  });
+  return emv;
+}
+
+function calculate() {
+  const emvA = getEMV('A');
+  const emvB = getEMV('B');
+
+  const fmtEMV = v => (v >= 0 ? '$' : '-$') + Math.abs(v).toFixed(2);
+
+  document.getElementById('emvA').textContent = fmtEMV(emvA);
+  document.getElementById('emvB').textContent = fmtEMV(emvB);
+
+  const cardA = document.getElementById('cardA');
+  const cardB = document.getElementById('cardB');
+  const diff = Math.abs(emvA - emvB);
+  const threshold = Math.max(0.01, (Math.abs(emvA)+Math.abs(emvB))*0.001);
+
+  if (diff < threshold) {
+    cardA.className = 'option-card'; cardB.className = 'option-card';
+  } else if (emvA > emvB) {
+    cardA.className = 'option-card winner'; cardB.className = 'option-card loser';
+  } else {
+    cardA.className = 'option-card loser';  cardB.className = 'option-card winner';
+  }
+
+  // bars
+  const sc = scenarios[currentScenario];
+  document.getElementById('barNameA').textContent = sc.titleA;
+  document.getElementById('barNameB').textContent = sc.titleB;
+  const maxAbs = Math.max(Math.abs(emvA), Math.abs(emvB), 1);
+
+  function setBar(fillId, emv, color) {
+    const fill = document.getElementById(fillId);
+    const pct = Math.min(90, (Math.abs(emv) / maxAbs) * 88);
+    fill.className = emv >= 0 ? 'bar-fill' : 'bar-neg';
+    fill.style.width = pct + '%';
+    fill.style.background = emv >= 0 ? color : '#e74c3c';
+    fill.textContent = fmtEMV(emv);
+  }
+  setBar('barFillA', emvA, emvA >= emvB ? '#27ae60' : '#2e86c1');
+  setBar('barFillB', emvB, emvB > emvA  ? '#27ae60' : '#1a5276');
+
+  document.getElementById('barsSection').style.display = 'block';
+
+  // verdict
+  const vLine = document.getElementById('verdictLine');
+  if (diff < threshold) {
+    vLine.textContent = 'Both options have equal expected value — it\'s a tie!';
+  } else {
+    const better = emvA > emvB ? sc.titleA : sc.titleB;
+    vLine.innerHTML = `"${better}" is better by <strong>$${diff.toFixed(2)}</strong> in expected value`;
+  }
+  document.getElementById('verdictSection').style.display = 'block';
+
+  // breakeven setup
+  document.getElementById('beLabel').textContent = sc.beVarLabel || 'Adjust probability:';
+  const beSide = sc.beVarSide || 'A';
+  const beIdx  = sc.beVarOutcome || 0;
+  const currentProb = parseFloat(document.getElementById('prob' + beSide + beIdx)?.value) || 0.5;
+  document.getElementById('beSlider').value = currentProb;
+  document.getElementById('beVal').textContent = (currentProb*100).toFixed(0) + '%';
+  updateBreakeven();
+}
+
+function updateBreakeven() {
+  const sc = scenarios[currentScenario];
+  const beSide = sc.beVarSide || 'A';
+  const beIdx  = sc.beVarOutcome || 0;
+  const slider = document.getElementById('beSlider');
+  const p = parseFloat(slider.value);
+  document.getElementById('beVal').textContent = (p*100).toFixed(0) + '%';
+
+  // temporarily override prob
+  const el = document.getElementById('prob' + beSide + beIdx);
+  if (!el) return;
+  const orig = el.value;
+  el.value = p;
+  const emvA2 = getEMV('A');
+  const emvB2 = getEMV('B');
+  el.value = orig;
+
+  const optName = beSide === 'A' ? sc.titleA : sc.titleB;
+  const otherName = beSide === 'A' ? sc.titleB : sc.titleA;
+  const betterAt = beSide === 'A' ? (emvA2 > emvB2) : (emvB2 > emvA2);
+
+  document.getElementById('beResult').innerHTML =
+    `At <strong>${(p*100).toFixed(0)}%</strong>: EMV(A) = <strong>$${emvA2.toFixed(2)}</strong>, EMV(B) = <strong>$${emvB2.toFixed(2)}</strong> — ` +
+    `<strong>${betterAt ? (beSide==='A'?sc.titleA:sc.titleB) : (beSide==='A'?sc.titleB:sc.titleA)}</strong> is better.`;
+}
+
+// Init
+loadScenario();
+</script>
+</body>
+</html>

@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ellsberg Paradox Urn</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #eaf2f8; color: #1a1a2e; min-height: 100vh; }
+
+  header {
+    background: linear-gradient(135deg, #1a5276, #2e86c1);
+    color: white; padding: 18px 24px; text-align: center;
+  }
+  header h1 { font-size: 1.5rem; font-weight: 700; }
+  header p  { font-size: 0.9rem; opacity: 0.88; margin-top: 4px; }
+
+  .container { max-width: 760px; margin: 0 auto; padding: 18px 16px 50px; }
+
+  .card {
+    background: white; border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(26,82,118,0.1);
+    padding: 22px; margin-bottom: 18px;
+    animation: fadeUp 0.3s ease;
+  }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:none} }
+  .card h2 { font-size: 1.1rem; color: #1a5276; margin-bottom: 8px; }
+  .card p  { font-size: 0.88rem; line-height: 1.65; color: #444; }
+
+  /* URN */
+  .urn-area { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
+  .urn-canvas-wrap { flex: 0 0 auto; }
+  canvas#urnCanvas { display: block; border-radius: 12px; border: 1.5px solid #c5d8ea; }
+
+  .urn-controls { flex: 1; min-width: 200px; }
+  .urn-controls h3 { font-size: 0.95rem; color: #1a5276; margin-bottom: 12px; font-weight: 700; }
+
+  .mix-row { margin-bottom: 16px; }
+  .mix-row label { display: flex; justify-content: space-between; font-size: 0.85rem; color: #444; margin-bottom: 6px; font-weight: 600; }
+  .mix-row label span { color: #2e86c1; font-weight: 800; }
+  input[type=range] {
+    width: 100%; height: 6px; border-radius: 3px;
+    background: linear-gradient(90deg, #2c3e50 var(--pct,50%), #ecf0f1 var(--pct,50%));
+    outline: none; cursor: pointer; appearance: none; -webkit-appearance: none;
+  }
+  input[type=range]:disabled { opacity: 0.35; cursor: not-allowed; }
+  input[type=range]::-webkit-slider-thumb {
+    appearance: none; -webkit-appearance: none;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: #1a5276; border: 3px solid white;
+    box-shadow: 0 2px 8px rgba(26,82,118,0.4); cursor: pointer;
+  }
+  input[type=range]:disabled::-webkit-slider-thumb { cursor: not-allowed; }
+
+  .legend-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  .legend-chip {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 0.8rem; color: #444;
+  }
+  .legend-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
+
+  .mystery-toggle {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px; background: #fef9e7;
+    border: 1.5px solid #f9ca57; border-radius: 10px;
+    cursor: pointer; margin-bottom: 14px; user-select: none;
+  }
+  .toggle-switch {
+    width: 40px; height: 22px; border-radius: 11px;
+    background: #c5d8ea; position: relative; transition: background 0.2s; flex-shrink: 0;
+  }
+  .toggle-switch.on { background: #f39c12; }
+  .toggle-switch::after {
+    content:''; position: absolute; width: 18px; height: 18px; border-radius: 50%;
+    background: white; top: 2px; left: 2px; transition: left 0.2s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  }
+  .toggle-switch.on::after { left: 20px; }
+  .mystery-toggle span { font-size: 0.85rem; font-weight: 600; color: #7d6608; }
+
+  /* Gamble cards */
+  .gambles-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 14px 0; }
+  .gamble-card {
+    border-radius: 12px; padding: 14px 12px;
+    border: 2px solid #d0e4f0; background: #f5fafd;
+    cursor: pointer; transition: all 0.18s; text-align: center;
+    position: relative;
+  }
+  .gamble-card:hover { border-color: #2e86c1; transform: translateY(-2px); box-shadow: 0 5px 16px rgba(46,134,193,0.18); }
+  .gamble-card.active { border-color: #1a5276; background: #d6eaf8; }
+  .gamble-card .gc-id { font-size: 0.72rem; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: #2e86c1; margin-bottom: 6px; }
+  .gamble-card.active .gc-id { color: #1a5276; }
+  .gamble-card .gc-condition { font-size: 0.88rem; font-weight: 700; color: #1a5276; margin-bottom: 4px; }
+  .gamble-card .gc-prob { font-size: 0.8rem; color: #666; margin-bottom: 4px; }
+  .gamble-card .gc-known { font-size: 0.72rem; padding: 2px 8px; border-radius: 10px; display: inline-block; margin-top: 4px; font-weight: 700; }
+  .known-badge  { background: #eaf7ee; color: #1e8449; }
+  .unknown-badge { background: #fef9e7; color: #7d6608; }
+  .gamble-card .gc-wins { font-size: 1.1rem; font-weight: 800; color: #27ae60; margin-top: 4px; }
+  .gamble-card .gc-rate { font-size: 0.8rem; color: #888; }
+
+  /* Draw area */
+  .draw-area { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 14px 0; }
+  .drawn-ball-display {
+    width: 64px; height: 64px; border-radius: 50%;
+    border: 3px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem; font-weight: 800; color: white;
+    transition: all 0.4s; background: #c5d8ea;
+    flex-shrink: 0;
+  }
+  .draw-result { flex: 1; min-width: 160px; }
+  .draw-result .dr-main { font-size: 1rem; font-weight: 700; color: #1a5276; }
+  .draw-result .dr-sub  { font-size: 0.85rem; color: #666; margin-top: 4px; line-height: 1.5; }
+  .payoff-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  .payoff-chip {
+    padding: 4px 10px; border-radius: 8px; font-size: 0.8rem; font-weight: 700;
+  }
+  .payoff-win  { background: #eaf7ee; color: #1e8449; }
+  .payoff-lose { background: #fdedec; color: #c0392b; }
+
+  .btn {
+    padding: 11px 22px; border-radius: 30px; font-size: 0.95rem;
+    font-weight: 700; cursor: pointer; border: none; transition: all 0.18s;
+  }
+  .btn-primary { background: linear-gradient(135deg, #1a5276, #2e86c1); color: white; }
+  .btn-primary:hover { opacity: 0.88; transform: translateY(-2px); box-shadow: 0 5px 16px rgba(26,82,118,0.3); }
+  .btn-sm { padding: 8px 16px; font-size: 0.85rem; }
+  .btn-ghost { background: transparent; border: 2px solid #2e86c1; color: #2e86c1; }
+  .btn-ghost:hover { background: #eaf2f8; }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .btn-warn { background: linear-gradient(135deg, #922b21, #e74c3c); color: white; }
+  .btn-warn:hover { opacity: 0.88; transform: translateY(-2px); }
+
+  /* Stats */
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 14px 0; }
+  .stat-cell { background: #f5fafd; border: 1.5px solid #d0e4f0; border-radius: 10px; padding: 10px; text-align: center; }
+  .stat-cell .sc-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #666; margin-bottom: 4px; }
+  .stat-cell .sc-wins  { font-size: 1.2rem; font-weight: 800; color: #27ae60; }
+  .stat-cell .sc-draws { font-size: 0.8rem; color: #888; }
+  .stat-cell .sc-rate  { font-size: 0.78rem; font-weight: 700; color: #1a5276; margin-top: 2px; }
+
+  .total-stat { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; }
+  .ts-chip { padding: 8px 14px; border-radius: 10px; background: #eaf2f8; border: 1.5px solid #c5d8ea; font-size: 0.85rem; }
+  .ts-chip b { color: #1a5276; }
+
+  /* Reveal & paradox */
+  .reveal-box {
+    background: #fef9e7; border: 1.5px solid #f9ca57;
+    border-radius: 12px; padding: 18px; margin-top: 14px;
+  }
+  .reveal-box h3 { font-size: 1rem; color: #7d6608; margin-bottom: 8px; }
+  .reveal-box p  { font-size: 0.88rem; line-height: 1.65; color: #5d4e00; }
+
+  .paradox-box {
+    background: linear-gradient(135deg, #1a5276, #2e86c1);
+    color: white; border-radius: 14px; padding: 20px; margin-top: 18px;
+    display: none;
+  }
+  .paradox-box h3 { font-size: 1.1rem; margin-bottom: 10px; }
+  .paradox-box p  { font-size: 0.9rem; line-height: 1.7; opacity: 0.93; margin-bottom: 8px; }
+
+  .log-wrap { max-height: 140px; overflow-y: auto; margin-top: 10px; }
+  .log-item { font-size: 0.8rem; color: #555; padding: 4px 0; border-bottom: 1px solid #eaf2f8; }
+
+  @media (max-width: 520px) {
+    .gambles-grid { grid-template-columns: 1fr 1fr; }
+    .stats-grid   { grid-template-columns: 1fr 1fr; }
+    .urn-area     { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Ellsberg Paradox Urn</h1>
+  <p>Can you have a consistent probability for unknown events?</p>
+</header>
+<div class="container">
+
+  <!-- Setup -->
+  <div class="card">
+    <h2>The Setup</h2>
+    <p>There are <strong>90 balls</strong> in this urn. <strong>30 are red</strong> — always. The other <strong>60 are black and white</strong> in some unknown ratio. You can draw one ball at random.</p>
+    <div class="urn-area" style="margin-top:16px;">
+      <div class="urn-canvas-wrap">
+        <canvas id="urnCanvas" width="220" height="220"></canvas>
+      </div>
+      <div class="urn-controls">
+        <div class="legend-row">
+          <div class="legend-chip"><div class="legend-dot" style="background:#e74c3c"></div>Red (30 — always known)</div>
+          <div class="legend-chip"><div class="legend-dot" style="background:#2c3e50"></div>Black (hidden mix)</div>
+          <div class="legend-chip"><div class="legend-dot" style="background:#ecf0f1;border:1.5px solid #aaa"></div>White (hidden mix)</div>
+        </div>
+
+        <div class="mystery-toggle" id="mystery-toggle" onclick="toggleMystery()">
+          <div class="toggle-switch" id="mystery-switch"></div>
+          <span id="mystery-label">Mystery Mode OFF — you can see the mix</span>
+        </div>
+
+        <div class="mix-row" id="mix-row">
+          <label>Black balls (of 60) <span id="lbl-black">30</span></label>
+          <input type="range" id="sl-mix" min="0" max="60" step="1" value="30" oninput="updateMix()">
+          <div style="font-size:0.78rem;color:#888;margin-top:4px;" id="mix-detail">30 black + 30 white = 60 hidden balls</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gamble selection -->
+  <div class="card">
+    <h2>Choose Your Gamble</h2>
+    <p style="margin-bottom:12px;">Pick one (or compare multiple) — each pays <strong>$100</strong> if you draw the right color:</p>
+    <div class="gambles-grid">
+      <div class="gamble-card active" id="gc-A" onclick="selectGamble('A')">
+        <div class="gc-id">Gamble A</div>
+        <div class="gc-condition">Draw RED</div>
+        <div class="gc-prob" id="gp-A">P = 30/90 = 33.3%</div>
+        <div class="gc-known known-badge">Known probability</div>
+        <div class="gc-wins" id="gw-A">0 wins</div>
+        <div class="gc-rate" id="gr-A">—</div>
+      </div>
+      <div class="gamble-card" id="gc-B" onclick="selectGamble('B')">
+        <div class="gc-id">Gamble B</div>
+        <div class="gc-condition">Draw BLACK</div>
+        <div class="gc-prob" id="gp-B">P = ?/90</div>
+        <div class="gc-unknown unknown-badge">Unknown probability</div>
+        <div class="gc-wins" id="gw-B">0 wins</div>
+        <div class="gc-rate" id="gr-B">—</div>
+      </div>
+      <div class="gamble-card" id="gc-C" onclick="selectGamble('C')">
+        <div class="gc-id">Gamble C</div>
+        <div class="gc-condition">Draw RED or WHITE</div>
+        <div class="gc-prob" id="gp-C">P = (30+?)/90</div>
+        <div class="gc-unknown unknown-badge">Unknown probability</div>
+        <div class="gc-wins" id="gw-C">0 wins</div>
+        <div class="gc-rate" id="gr-C">—</div>
+      </div>
+      <div class="gamble-card" id="gc-D" onclick="selectGamble('D')">
+        <div class="gc-id">Gamble D</div>
+        <div class="gc-condition">Draw BLACK or WHITE</div>
+        <div class="gc-prob" id="gp-D">P = 60/90 = 66.7%</div>
+        <div class="gc-known known-badge">Known probability</div>
+        <div class="gc-wins" id="gw-D">0 wins</div>
+        <div class="gc-rate" id="gr-D">—</div>
+      </div>
+    </div>
+    <p style="font-size:0.8rem;color:#888;">Selected gamble is highlighted. All draws use the same urn configuration.</p>
+  </div>
+
+  <!-- Draw -->
+  <div class="card">
+    <h2>Draw Balls</h2>
+    <div class="draw-area">
+      <div class="drawn-ball-display" id="drawn-ball">?</div>
+      <div class="draw-result">
+        <div class="dr-main" id="draw-main">No draws yet</div>
+        <div class="dr-sub"  id="draw-sub">Click a draw button to start</div>
+        <div class="payoff-row" id="payoff-row"></div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="drawBalls(1)">Draw 1 Ball</button>
+      <button class="btn btn-primary btn-sm" onclick="drawBalls(10)">Draw 10</button>
+      <button class="btn btn-primary btn-sm" onclick="drawBalls(100)">Draw 100</button>
+      <button class="btn btn-ghost  btn-sm" onclick="resetStats()">Reset Stats</button>
+      <button class="btn btn-warn   btn-sm" id="reveal-btn" onclick="revealMix()">Reveal the Mix</button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="card">
+    <h2>Running Statistics</h2>
+    <div class="total-stat">
+      <div class="ts-chip">Total draws: <b id="tot-draws">0</b></div>
+      <div class="ts-chip">Total winnings: <b id="tot-wins">$0</b></div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-cell">
+        <div class="sc-label">Gamble A (Red)</div>
+        <div class="sc-wins" id="sw-A">0W</div>
+        <div class="sc-draws" id="sd-A">0 draws</div>
+        <div class="sc-rate"  id="sr-A">—</div>
+      </div>
+      <div class="stat-cell">
+        <div class="sc-label">Gamble B (Black)</div>
+        <div class="sc-wins" id="sw-B">0W</div>
+        <div class="sc-draws" id="sd-B">0 draws</div>
+        <div class="sc-rate"  id="sr-B">—</div>
+      </div>
+      <div class="stat-cell">
+        <div class="sc-label">Gamble C (R+W)</div>
+        <div class="sc-wins" id="sw-C">0W</div>
+        <div class="sc-draws" id="sd-C">0 draws</div>
+        <div class="sc-rate"  id="sr-C">—</div>
+      </div>
+      <div class="stat-cell">
+        <div class="sc-label">Gamble D (B+W)</div>
+        <div class="sc-wins" id="sw-D">0W</div>
+        <div class="sc-draws" id="sd-D">0 draws</div>
+        <div class="sc-rate"  id="sr-D">—</div>
+      </div>
+    </div>
+    <div class="log-wrap" id="draw-log"></div>
+  </div>
+
+  <!-- Reveal & paradox -->
+  <div class="card" id="reveal-card" style="display:none;">
+    <h2>The Mix Revealed</h2>
+    <div class="reveal-box" id="reveal-content"></div>
+    <div class="paradox-box" id="paradox-box">
+      <h3>The Ellsberg Paradox</h3>
+      <p>
+        Most people prefer <strong>Gamble A over B</strong> (known over unknown probability) AND <strong>Gamble D over C</strong> (known over unknown probability). This feels intuitively safe — prefer what you know.
+      </p>
+      <p>
+        But here's the problem: If you assign <em>any</em> probability p to drawing black, then:
+        <br>• A&gt;B means P(red) &gt; P(black) → 30/90 &gt; p/90 → p &lt; 30
+        <br>• D&gt;C means P(B+W) &gt; P(R+W) → 60/90 &gt; (30+white)/90 → white &lt; 30 → black &gt; 30 → p &gt; 30
+      </p>
+      <p>
+        <strong>These two inequalities cannot both be true!</strong> No single probability assignment satisfies A&gt;B and D&gt;C simultaneously. This is <em>ambiguity aversion</em> — a preference for known over unknown risks that cannot be explained by expected utility theory.
+      </p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let blackBalls = 30;   // of the 60 hidden
+let mysteryMode = false;
+let selectedGamble = 'A';
+let revealed = false;
+
+const stats = {
+  A: { draws: 0, wins: 0 },
+  B: { draws: 0, wins: 0 },
+  C: { draws: 0, wins: 0 },
+  D: { draws: 0, wins: 0 },
+};
+let totalDraws = 0, totalWinnings = 0;
+const logItems = [];
+
+// ── Urn canvas ─────────────────────────────────────────────────────────────
+const urnCanvas = document.getElementById('urnCanvas');
+const urnCtx    = urnCanvas.getContext('2d');
+
+function drawUrn() {
+  const W = 220, H = 220;
+  urnCtx.clearRect(0, 0, W, H);
+
+  // urn body
+  urnCtx.fillStyle = '#dde8f0';
+  urnCtx.beginPath();
+  urnCtx.ellipse(110, 190, 80, 20, 0, 0, 2*Math.PI);
+  urnCtx.fill();
+  urnCtx.fillStyle = '#c5d8ea';
+  urnCtx.beginPath();
+  urnCtx.moveTo(30, 80); urnCtx.lineTo(30, 190);
+  urnCtx.ellipse(110, 190, 80, 20, 0, Math.PI, 0);
+  urnCtx.lineTo(190, 80);
+  urnCtx.ellipse(110, 80, 80, 20, 0, 0, Math.PI, true);
+  urnCtx.fill();
+  urnCtx.strokeStyle = '#a0bccf'; urnCtx.lineWidth = 2;
+  urnCtx.beginPath();
+  urnCtx.moveTo(30, 80); urnCtx.lineTo(30, 190);
+  urnCtx.moveTo(190, 80); urnCtx.lineTo(190, 190);
+  urnCtx.stroke();
+
+  // rim ellipse top
+  urnCtx.strokeStyle = '#8fb0c8'; urnCtx.lineWidth = 2;
+  urnCtx.beginPath();
+  urnCtx.ellipse(110, 80, 80, 20, 0, 0, 2*Math.PI);
+  urnCtx.stroke();
+  urnCtx.fillStyle = '#d0e4ee';
+  urnCtx.beginPath();
+  urnCtx.ellipse(110, 80, 80, 20, 0, 0, 2*Math.PI);
+  urnCtx.fill();
+
+  // draw balls inside
+  const whiteBalls = 60 - blackBalls;
+  const balls = [];
+  for (let i = 0; i < 30; i++) balls.push('red');
+  for (let i = 0; i < blackBalls; i++) balls.push('black');
+  for (let i = 0; i < whiteBalls; i++) balls.push('white');
+  // shuffle for visual variety
+  for (let i = balls.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [balls[i], balls[j]] = [balls[j], balls[i]];
+  }
+
+  // arrange in grid
+  const cols = 10, rows = 9;
+  const bx = 40, by = 95, bw = 140, bh = 85;
+  balls.slice(0, 90).forEach((color, idx) => {
+    const col = idx % cols, row = Math.floor(idx / cols);
+    const cx = bx + (col + 0.5) * (bw / cols);
+    const cy = by + (row + 0.5) * (bh / rows);
+    const r  = 6;
+    urnCtx.fillStyle = color === 'red' ? '#e74c3c'
+                     : color === 'black' ? (mysteryMode ? '#555' : '#2c3e50')
+                     : (mysteryMode ? '#777' : '#ecf0f1');
+    urnCtx.strokeStyle = color === 'white' ? '#bbb' : 'rgba(0,0,0,0.15)';
+    urnCtx.lineWidth = 0.5;
+    urnCtx.beginPath(); urnCtx.arc(cx, cy, r, 0, 2*Math.PI);
+    urnCtx.fill(); urnCtx.stroke();
+    if (mysteryMode && color !== 'red') {
+      urnCtx.fillStyle = '#999';
+      urnCtx.beginPath(); urnCtx.arc(cx, cy, r, 0, 2*Math.PI);
+      urnCtx.fill();
+    }
+  });
+
+  // mystery overlay text
+  if (mysteryMode) {
+    urnCtx.fillStyle = 'rgba(0,0,0,0.45)';
+    urnCtx.beginPath(); urnCtx.ellipse(110, 135, 78, 55, 0, 0, 2*Math.PI); urnCtx.fill();
+    urnCtx.fillStyle = 'white'; urnCtx.font = 'bold 13px Segoe UI'; urnCtx.textAlign = 'center';
+    urnCtx.fillText('60 hidden balls', 110, 130);
+    urnCtx.fillText('(black + white)', 110, 148);
+    urnCtx.fillText('ratio unknown', 110, 164);
+  }
+}
+
+// ── Controls ───────────────────────────────────────────────────────────────
+function updateMix() {
+  blackBalls = +document.getElementById('sl-mix').value;
+  const whiteBalls = 60 - blackBalls;
+  document.getElementById('lbl-black').textContent = blackBalls;
+  document.getElementById('mix-detail').textContent = `${blackBalls} black + ${whiteBalls} white = 60 hidden balls`;
+  updateGambleProbs();
+  drawUrn();
+  updateSliderStyle();
+}
+
+function updateSliderStyle() {
+  const el = document.getElementById('sl-mix');
+  const pct = (blackBalls / 60 * 100).toFixed(1);
+  el.style.setProperty('--pct', pct + '%');
+}
+
+function toggleMystery() {
+  mysteryMode = !mysteryMode;
+  document.getElementById('mystery-switch').classList.toggle('on', mysteryMode);
+  document.getElementById('mystery-label').textContent = mysteryMode
+    ? 'Mystery Mode ON — mix is hidden!'
+    : 'Mystery Mode OFF — you can see the mix';
+  document.getElementById('sl-mix').disabled = mysteryMode;
+  drawUrn();
+  updateGambleProbs();
+}
+
+function updateGambleProbs() {
+  const whiteBalls = 60 - blackBalls;
+  document.getElementById('gp-A').textContent = 'P = 30/90 = 33.3%';
+  document.getElementById('gp-D').textContent = 'P = 60/90 = 66.7%';
+  if (!mysteryMode) {
+    document.getElementById('gp-B').textContent = `P = ${blackBalls}/90 = ${(blackBalls/90*100).toFixed(1)}%`;
+    document.getElementById('gp-C').textContent = `P = (30+${whiteBalls})/90 = ${((30+whiteBalls)/90*100).toFixed(1)}%`;
+  } else {
+    document.getElementById('gp-B').textContent = 'P = ?/90 (unknown)';
+    document.getElementById('gp-C').textContent = 'P = (30+?)/90 (unknown)';
+  }
+}
+
+function selectGamble(g) {
+  selectedGamble = g;
+  ['A','B','C','D'].forEach(x => document.getElementById('gc-'+x).classList.toggle('active', x===g));
+}
+
+// ── Draw ───────────────────────────────────────────────────────────────────
+function drawBalls(n) {
+  let lastBall = null, lastColor = null, lastWins = {};
+  for (let i = 0; i < n; i++) {
+    const r = Math.random() * 90;
+    let color;
+    if (r < 30) color = 'red';
+    else if (r < 30 + blackBalls) color = 'black';
+    else color = 'white';
+
+    // wins for each gamble
+    const wA = color === 'red';
+    const wB = color === 'black';
+    const wC = color === 'red' || color === 'white';
+    const wD = color === 'black' || color === 'white';
+
+    // accumulate stats for all
+    stats.A.draws++; if (wA) stats.A.wins++;
+    stats.B.draws++; if (wB) stats.B.wins++;
+    stats.C.draws++; if (wC) stats.C.wins++;
+    stats.D.draws++; if (wD) stats.D.wins++;
+    totalDraws++;
+    const wonOnSelected = { A:wA, B:wB, C:wC, D:wD }[selectedGamble];
+    if (wonOnSelected) totalWinnings += 100;
+
+    lastBall  = color;
+    lastWins  = { A:wA, B:wB, C:wC, D:wD };
+
+    if (i < 5) {
+      logItems.unshift(`Draw: ${color.toUpperCase()} — A:${wA?'WIN':'—'} B:${wB?'WIN':'—'} C:${wC?'WIN':'—'} D:${wD?'WIN':'—'}`);
+      if (logItems.length > 30) logItems.pop();
+    }
+  }
+  if (n > 5) logItems.unshift(`[${n} draws simulated — last ball: ${lastBall}]`);
+
+  // animate last ball
+  const bd = document.getElementById('drawn-ball');
+  bd.textContent = lastBall.charAt(0).toUpperCase();
+  bd.style.background = lastBall === 'red' ? '#e74c3c' : lastBall === 'black' ? '#2c3e50' : '#ecf0f1';
+  bd.style.color = lastBall === 'white' ? '#333' : 'white';
+  bd.style.transform = 'scale(1.2)';
+  setTimeout(() => bd.style.transform = 'scale(1)', 300);
+
+  document.getElementById('draw-main').textContent = `Drew: ${lastBall.charAt(0).toUpperCase() + lastBall.slice(1)} ball`;
+  document.getElementById('draw-sub').textContent  = n === 1
+    ? `Your selected gamble (${selectedGamble}): ${lastWins[selectedGamble] ? 'WIN $100!' : 'No win'}`
+    : `${n} draws completed — see stats below`;
+
+  const pr = document.getElementById('payoff-row');
+  pr.innerHTML = Object.entries(lastWins).map(([g,w]) =>
+    `<div class="payoff-chip ${w?'payoff-win':'payoff-lose'}">${g}: ${w?'+$100':'$0'}</div>`).join('');
+
+  updateStatsDisplay();
+  updateLog();
+  drawUrn();
+}
+
+function updateStatsDisplay() {
+  ['A','B','C','D'].forEach(g => {
+    const d = stats[g].draws, w = stats[g].wins;
+    document.getElementById('sw-'+g).textContent = w + 'W';
+    document.getElementById('sd-'+g).textContent = d + ' draws';
+    document.getElementById('sr-'+g).textContent = d > 0 ? (w/d*100).toFixed(1)+'% win rate' : '—';
+    document.getElementById('gw-'+g).textContent = w + ' win' + (w!==1?'s':'');
+    document.getElementById('gr-'+g).textContent = d > 0 ? (w/d*100).toFixed(1)+'% actual' : 'no draws';
+  });
+  document.getElementById('tot-draws').textContent = totalDraws;
+  document.getElementById('tot-wins').textContent  = '$' + totalWinnings;
+}
+
+function updateLog() {
+  const log = document.getElementById('draw-log');
+  log.innerHTML = logItems.slice(0, 20).map(l => `<div class="log-item">${l}</div>`).join('');
+}
+
+function resetStats() {
+  ['A','B','C','D'].forEach(g => { stats[g].draws = 0; stats[g].wins = 0; });
+  totalDraws = 0; totalWinnings = 0;
+  logItems.length = 0;
+  document.getElementById('draw-main').textContent = 'No draws yet';
+  document.getElementById('draw-sub').textContent  = 'Click a draw button to start';
+  document.getElementById('payoff-row').innerHTML  = '';
+  document.getElementById('drawn-ball').textContent = '?';
+  document.getElementById('drawn-ball').style.background = '#c5d8ea';
+  updateStatsDisplay();
+  updateLog();
+}
+
+function revealMix() {
+  revealed = true;
+  mysteryMode = false;
+  document.getElementById('mystery-switch').classList.remove('on');
+  document.getElementById('mystery-label').textContent = 'Mystery Mode OFF — mix is revealed';
+  document.getElementById('sl-mix').disabled = false;
+  drawUrn();
+  updateGambleProbs();
+
+  const whiteBalls = 60 - blackBalls;
+  const rc = document.getElementById('reveal-card');
+  rc.style.display = 'block';
+  document.getElementById('reveal-content').innerHTML = `
+    <h3>The hidden mix was: <strong>${blackBalls} black + ${whiteBalls} white</strong></h3>
+    <p>True probabilities: P(black) = ${blackBalls}/90 = ${(blackBalls/90*100).toFixed(1)}%, P(white) = ${whiteBalls}/90 = ${(whiteBalls/90*100).toFixed(1)}%</p>
+    <p style="margin-top:8px;">Gamble A win rate = 33.3% | Gamble B win rate = ${(blackBalls/90*100).toFixed(1)}% | Gamble C = ${((30+whiteBalls)/90*100).toFixed(1)}% | Gamble D = 66.7%</p>
+    ${totalDraws > 10 ? `<p style="margin-top:8px;">Your experiment: ${totalDraws} draws, average winnings = $${(totalWinnings/totalDraws).toFixed(2)} per draw on ${selectedGamble}.</p>` : ''}
+  `;
+  document.getElementById('paradox-box').style.display = 'block';
+  rc.scrollIntoView({ behavior: 'smooth' });
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+updateMix();
+</script>
+</body>
+</html>

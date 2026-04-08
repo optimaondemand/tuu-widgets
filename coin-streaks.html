@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coin Streak Simulator</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #eaf2f8;
+    color: #1a2733;
+    min-height: 100vh;
+    padding: 14px;
+  }
+  h1 { text-align: center; color: #1a5276; font-size: 1.4rem; margin-bottom: 4px; }
+  .subtitle { text-align: center; color: #5d6d7e; font-size: 0.85rem; margin-bottom: 14px; }
+
+  .controls {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .btn {
+    padding: 10px 22px;
+    border: none;
+    border-radius: 9px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    letter-spacing: 0.2px;
+  }
+  .btn:active { transform: scale(0.96); }
+  .btn-flip { background: #1a5276; color: #fff; font-size: 1.05rem; padding: 12px 28px; }
+  .btn-flip:hover { background: #154360; }
+  .btn-multi { background: #2e86c1; color: #fff; }
+  .btn-multi:hover { background: #1a5276; }
+  .btn-reset { background: #e74c3c; color: #fff; }
+  .btn-reset:hover { background: #c0392b; }
+
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 260px;
+    gap: 14px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  @media (max-width: 640px) {
+    .main-grid { grid-template-columns: 1fr; }
+  }
+
+  .panel {
+    background: #fff;
+    border-radius: 12px;
+    padding: 14px;
+    box-shadow: 0 2px 10px rgba(26,82,118,0.1);
+  }
+  .panel h3 {
+    color: #1a5276;
+    font-size: 0.92rem;
+    margin-bottom: 10px;
+    border-bottom: 2px solid #eaf2f8;
+    padding-bottom: 6px;
+  }
+
+  /* Sequence display */
+  .sequence-scroll {
+    height: 160px;
+    overflow-y: auto;
+    padding: 8px;
+    background: #f8fbfd;
+    border-radius: 8px;
+    border: 1px solid #d5e8f5;
+    line-height: 1.8;
+    font-size: 0;
+  }
+  .flip-token {
+    display: inline-block;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    font-size: 0.75rem;
+    font-weight: 900;
+    text-align: center;
+    line-height: 28px;
+    margin: 2px;
+    transition: transform 0.15s;
+    cursor: default;
+  }
+  .flip-H { background: #2e86c1; color: #fff; }
+  .flip-T { background: #e74c3c; color: #fff; }
+  .streak-bg {
+    outline: 3px solid #f39c12;
+    outline-offset: 1px;
+    border-radius: 50%;
+  }
+
+  /* Stats panel */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .stat-box {
+    background: #eaf2f8;
+    border-radius: 8px;
+    padding: 10px 8px;
+    text-align: center;
+  }
+  .stat-box .val { font-size: 1.4rem; font-weight: 900; color: #1a5276; }
+  .stat-box .lbl { font-size: 0.68rem; color: #7f8c8d; text-transform: uppercase; letter-spacing: 0.4px; margin-top: 2px; }
+  .stat-box.h-box { border-top: 3px solid #2e86c1; }
+  .stat-box.t-box { border-top: 3px solid #e74c3c; }
+  .stat-box.streak-h { border-top: 3px solid #27ae60; }
+  .stat-box.streak-t { border-top: 3px solid #f39c12; }
+  .stat-box.full { grid-column: 1 / -1; }
+
+  .current-streak {
+    background: #fff3cd;
+    border: 1px solid #f39c12;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 0.82rem;
+    text-align: center;
+    margin-bottom: 8px;
+  }
+  .current-streak span { font-weight: 700; color: #1a5276; }
+
+  .insight-box {
+    background: linear-gradient(135deg, #1a5276, #2e86c1);
+    color: #fff;
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 0.82rem;
+    line-height: 1.6;
+    margin-top: 14px;
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .insight-box strong { color: #aed6f1; }
+  .insight-box .formula {
+    background: rgba(255,255,255,0.12);
+    border-radius: 6px;
+    padding: 6px 10px;
+    margin-top: 8px;
+    font-family: monospace;
+    font-size: 0.88rem;
+    letter-spacing: 0.3px;
+  }
+
+  .legend {
+    display: flex;
+    gap: 14px;
+    font-size: 0.75rem;
+    color: #5d6d7e;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+  .legend-dot { width: 14px; height: 14px; border-radius: 50%; }
+</style>
+</head>
+<body>
+<h1>🪙 Coin Streak Simulator</h1>
+<p class="subtitle">Flip coins and discover why long streaks happen more often than you think!</p>
+
+<div class="controls">
+  <button class="btn btn-flip" onclick="flip(1)">Flip 1</button>
+  <button class="btn btn-multi" onclick="flip(10)">Flip 10</button>
+  <button class="btn btn-multi" onclick="flip(50)">Flip 50</button>
+  <button class="btn btn-reset" onclick="resetAll()">Reset</button>
+</div>
+
+<div class="main-grid">
+  <!-- Sequence display -->
+  <div class="panel">
+    <h3>Flip Sequence</h3>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#2e86c1"></div>Heads (H)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#e74c3c"></div>Tails (T)</div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#2e86c1;outline:3px solid #f39c12;outline-offset:1px;border-radius:50%;"></div>
+        Streak of 3+ (highlighted)
+      </div>
+    </div>
+    <div class="sequence-scroll" id="seqDisplay"></div>
+    <p style="font-size:0.72rem;color:#aab;margin-top:6px;text-align:right;">Scroll up to see earlier flips</p>
+  </div>
+
+  <!-- Stats -->
+  <div class="panel">
+    <h3>Statistics</h3>
+    <div class="current-streak" id="currentStreakBox">Current streak: <span id="currentStreakVal">—</span></div>
+    <div class="stat-grid">
+      <div class="stat-box full">
+        <div class="val" id="statTotal">0</div>
+        <div class="lbl">Total Flips</div>
+      </div>
+      <div class="stat-box h-box">
+        <div class="val" id="statHeads">0</div>
+        <div class="lbl">Heads</div>
+      </div>
+      <div class="stat-box t-box">
+        <div class="val" id="statTails">0</div>
+        <div class="lbl">Tails</div>
+      </div>
+      <div class="stat-box streak-h">
+        <div class="val" id="statLongestH">0</div>
+        <div class="lbl">Longest H Streak</div>
+      </div>
+      <div class="stat-box streak-t">
+        <div class="val" id="statLongestT">0</div>
+        <div class="lbl">Longest T Streak</div>
+      </div>
+    </div>
+    <div style="background:#eaf2f8;border-radius:8px;padding:10px;font-size:0.78rem;color:#34495e;line-height:1.5;">
+      <strong style="color:#1a5276;">Expected longest streak</strong><br>
+      In <span id="nFlipsText">0</span> flips:<br>
+      <span style="font-size:1.05rem;font-weight:900;color:#2e86c1;" id="expectedStreak">—</span> flips long<br>
+      <span style="font-size:0.7rem;color:#7f8c8d;">(≈ log₂ of total flips)</span>
+    </div>
+  </div>
+</div>
+
+<div class="insight-box" id="insightBox">
+  <strong>Why do long streaks happen?</strong> Our brains are wired to see patterns — a run of 5 heads in a row <em>feels</em> suspicious.
+  But in a truly random sequence, long streaks are <strong>mathematically expected</strong>.
+  <div class="formula" id="formulaBox">Flip some coins to see the expected streak length appear!</div>
+</div>
+
+<script>
+  let flips = []; // array of 'H' or 'T'
+  let heads = 0, tails = 0;
+  let longestH = 0, longestT = 0;
+  let currentStreak = 0;
+  let currentStreakType = null;
+
+  function flip(n) {
+    const newFlips = [];
+    for (let i = 0; i < n; i++) {
+      newFlips.push(Math.random() < 0.5 ? 'H' : 'T');
+    }
+    newFlips.forEach(f => {
+      flips.push(f);
+      if (f === 'H') heads++; else tails++;
+    });
+    recomputeStreaks();
+    renderSequence();
+    updateStats();
+  }
+
+  function recomputeStreaks() {
+    longestH = 0; longestT = 0;
+    let runH = 0, runT = 0;
+    currentStreak = 0;
+    currentStreakType = null;
+
+    flips.forEach((f, i) => {
+      if (f === 'H') { runH++; runT = 0; }
+      else { runT++; runH = 0; }
+      longestH = Math.max(longestH, runH);
+      longestT = Math.max(longestT, runT);
+    });
+
+    // current streak (from end)
+    if (flips.length > 0) {
+      const last = flips[flips.length - 1];
+      let count = 0;
+      for (let i = flips.length - 1; i >= 0; i--) {
+        if (flips[i] === last) count++;
+        else break;
+      }
+      currentStreak = count;
+      currentStreakType = last;
+    }
+  }
+
+  function getStreakMap() {
+    // Returns array of booleans: is this index part of a streak of 3+?
+    const inStreak = new Array(flips.length).fill(false);
+    let i = 0;
+    while (i < flips.length) {
+      let j = i;
+      while (j < flips.length && flips[j] === flips[i]) j++;
+      const len = j - i;
+      if (len >= 3) {
+        for (let k = i; k < j; k++) inStreak[k] = true;
+      }
+      i = j;
+    }
+    return inStreak;
+  }
+
+  function renderSequence() {
+    const display = document.getElementById('seqDisplay');
+    const streakMap = getStreakMap();
+    // Only render last 300 to keep DOM light
+    const startIdx = Math.max(0, flips.length - 300);
+    display.innerHTML = '';
+    for (let i = startIdx; i < flips.length; i++) {
+      const tok = document.createElement('div');
+      tok.className = 'flip-token flip-' + flips[i];
+      if (streakMap[i]) tok.classList.add('streak-bg');
+      tok.textContent = flips[i];
+      tok.title = `Flip #${i + 1}: ${flips[i] === 'H' ? 'Heads' : 'Tails'}`;
+      display.appendChild(tok);
+    }
+    display.scrollTop = display.scrollHeight;
+  }
+
+  function updateStats() {
+    const n = flips.length;
+    document.getElementById('statTotal').textContent = n;
+    document.getElementById('statHeads').textContent = heads;
+    document.getElementById('statTails').textContent = tails;
+    document.getElementById('statLongestH').textContent = longestH;
+    document.getElementById('statLongestT').textContent = longestT;
+
+    if (currentStreakType) {
+      document.getElementById('currentStreakVal').textContent =
+        `${currentStreak} ${currentStreakType === 'H' ? 'Heads' : 'Tails'} in a row`;
+    } else {
+      document.getElementById('currentStreakVal').textContent = '—';
+    }
+
+    document.getElementById('nFlipsText').textContent = n;
+    if (n >= 2) {
+      const expected = Math.max(1, Math.round(Math.log2(n)));
+      document.getElementById('expectedStreak').textContent = `~${expected}`;
+      document.getElementById('formulaBox').textContent =
+        `In ${n} flips: expected longest streak ≈ log₂(${n}) ≈ ${expected}. Your actual longest: ${Math.max(longestH, longestT)}.`;
+
+      if (n >= 20) {
+        const actual = Math.max(longestH, longestT);
+        const insight = actual >= expected
+          ? `With ${n} flips, you got a streak of ${actual} — right in line with the prediction of ~${expected}! Long streaks aren't flukes; they're expected.`
+          : `With ${n} flips, theory predicts a streak of ~${expected}. Your longest so far is ${actual}. Keep flipping — it will grow!`;
+        document.getElementById('insightBox').innerHTML =
+          `<strong>Why do long streaks happen?</strong> Our brains see patterns in randomness. But math says: in ${n} fair coin flips, you should <strong>expect</strong> a run of about ${expected} in a row.<div class="formula">${insight}</div>`;
+      }
+    } else {
+      document.getElementById('expectedStreak').textContent = '—';
+    }
+  }
+
+  function resetAll() {
+    flips = []; heads = 0; tails = 0;
+    longestH = 0; longestT = 0;
+    currentStreak = 0; currentStreakType = null;
+    document.getElementById('seqDisplay').innerHTML = '';
+    document.getElementById('currentStreakVal').textContent = '—';
+    document.getElementById('statTotal').textContent = '0';
+    document.getElementById('statHeads').textContent = '0';
+    document.getElementById('statTails').textContent = '0';
+    document.getElementById('statLongestH').textContent = '0';
+    document.getElementById('statLongestT').textContent = '0';
+    document.getElementById('nFlipsText').textContent = '0';
+    document.getElementById('expectedStreak').textContent = '—';
+    document.getElementById('formulaBox').textContent = 'Flip some coins to see the expected streak length appear!';
+    document.getElementById('insightBox').innerHTML =
+      `<strong>Why do long streaks happen?</strong> Our brains are wired to see patterns — a run of 5 heads in a row <em>feels</em> suspicious. But in a truly random sequence, long streaks are <strong>mathematically expected</strong>.<div class="formula">Flip some coins to see the expected streak length appear!</div>`;
+  }
+</script>
+</body>
+</html>

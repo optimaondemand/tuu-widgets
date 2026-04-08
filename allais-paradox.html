@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Allais Paradox</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #eaf2f8; color: #1a1a2e; min-height: 100vh; }
+
+  header {
+    background: linear-gradient(135deg, #1a5276, #2e86c1);
+    color: white; padding: 20px 24px; text-align: center;
+  }
+  header h1 { font-size: 1.5rem; font-weight: 700; }
+  header p  { font-size: 0.9rem; opacity: 0.88; margin-top: 4px; }
+
+  .container { max-width: 760px; margin: 0 auto; padding: 20px 16px 50px; }
+
+  .card {
+    background: white; border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(26,82,118,0.11);
+    padding: 26px; margin-bottom: 22px;
+    animation: fadeUp 0.35s ease;
+  }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:none} }
+
+  .phase-badge {
+    display: inline-block; padding: 4px 14px; border-radius: 20px;
+    font-size: 0.72rem; font-weight: 800; letter-spacing: 1.2px;
+    text-transform: uppercase; margin-bottom: 12px;
+  }
+  .badge-1 { background: #d6eaf8; color: #1a5276; }
+  .badge-2 { background: #fdebd0; color: #784212; }
+
+  .card h2 { font-size: 1.2rem; color: #1a5276; margin-bottom: 6px; }
+  .card > p { font-size: 0.92rem; line-height: 1.65; color: #444; margin-bottom: 18px; }
+
+  /* Decision header */
+  .decision-label {
+    font-size: 0.8rem; font-weight: 700; letter-spacing: 0.8px;
+    text-transform: uppercase; color: #666; margin-bottom: 10px; padding-top: 4px;
+  }
+
+  /* Option cards */
+  .options-row { display: flex; gap: 14px; margin-bottom: 22px; flex-wrap: wrap; }
+  .opt-card {
+    flex: 1; min-width: 200px; border-radius: 14px; padding: 18px 16px;
+    border: 2.5px solid #d0e4f0; background: #f5fafd; cursor: pointer;
+    transition: all 0.2s; position: relative;
+  }
+  .opt-card:hover { border-color: #2e86c1; transform: translateY(-3px); box-shadow: 0 8px 20px rgba(46,134,193,0.18); }
+  .opt-card.selected { border-color: #1a5276; background: #d6eaf8; transform: translateY(-3px); box-shadow: 0 8px 20px rgba(26,82,118,0.22); }
+  .opt-card.selected::after {
+    content: '✓'; position: absolute; top: 10px; right: 12px;
+    font-size: 1.1rem; color: #1a5276; font-weight: 900;
+  }
+  .opt-id {
+    font-size: 0.75rem; font-weight: 800; letter-spacing: 1px;
+    text-transform: uppercase; color: #2e86c1; margin-bottom: 10px;
+  }
+  .opt-card.selected .opt-id { color: #1a5276; }
+
+  /* probability bars */
+  .prob-stack { display: flex; flex-direction: column; gap: 5px; margin: 10px 0; }
+  .prob-row { display: flex; align-items: center; gap: 8px; }
+  .prob-seg {
+    height: 22px; border-radius: 6px; display: flex; align-items: center;
+    justify-content: center; font-size: 0.72rem; font-weight: 700;
+    color: white; transition: width 0.3s; min-width: 4px; white-space: nowrap;
+    overflow: hidden;
+  }
+  .seg-gold   { background: #f39c12; }
+  .seg-green  { background: #27ae60; }
+  .seg-red    { background: #e74c3c; }
+  .seg-gray   { background: #aab7c4; }
+  .prob-bar-outer { flex: 1; background: #e8eef2; border-radius: 6px; height: 22px; overflow: hidden; display: flex; }
+  .prob-desc { font-size: 0.78rem; color: #555; margin-top: 4px; }
+
+  .emv-tag {
+    display: inline-block; margin-top: 10px; padding: 4px 10px;
+    background: #eaf2f8; border-radius: 6px; font-size: 0.78rem;
+    font-weight: 700; color: #1a5276;
+  }
+
+  /* Submit */
+  .submit-row { text-align: center; margin-top: 10px; }
+  .btn {
+    display: inline-block; padding: 13px 32px; border-radius: 30px;
+    font-size: 1rem; font-weight: 700; cursor: pointer;
+    border: none; transition: all 0.2s; letter-spacing: 0.2px;
+  }
+  .btn-primary { background: linear-gradient(135deg, #1a5276, #2e86c1); color: white; }
+  .btn-primary:hover { opacity: 0.88; transform: translateY(-2px); box-shadow: 0 6px 18px rgba(26,82,118,0.3); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .btn-ghost { background: transparent; border: 2px solid #2e86c1; color: #2e86c1; padding: 10px 24px; font-size: 0.9rem; }
+  .btn-ghost:hover { background: #eaf2f8; }
+
+  /* Phase 2 */
+  .reveal-banner {
+    background: linear-gradient(135deg, #784212, #e67e22);
+    color: white; border-radius: 14px; padding: 20px; margin-bottom: 20px;
+    text-align: center;
+  }
+  .reveal-banner h2 { font-size: 1.4rem; font-weight: 800; margin-bottom: 6px; }
+  .reveal-banner p  { font-size: 0.92rem; opacity: 0.92; }
+
+  /* Choices summary */
+  .choices-summary { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+  .choice-chip {
+    flex: 1; min-width: 140px; padding: 14px; border-radius: 12px;
+    text-align: center; background: #f5fafd; border: 2px solid #d0e4f0;
+  }
+  .choice-chip .cc-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #666; margin-bottom: 4px; }
+  .choice-chip .cc-val   { font-size: 1.2rem; font-weight: 800; color: #1a5276; }
+  .choice-chip .cc-note  { font-size: 0.75rem; color: #888; margin-top: 2px; }
+  .choice-chip.paradox-chip { background: #fdebd0; border-color: #f0a030; }
+  .choice-chip.safe-chip   { background: #eaf7ee; border-color: #7dcea0; }
+
+  /* Proof box */
+  .proof-box {
+    background: #1a1a2e; color: #e8f4fc; border-radius: 14px;
+    padding: 22px; margin: 16px 0; font-family: 'Courier New', monospace;
+    font-size: 0.88rem; line-height: 1.8;
+  }
+  .proof-box .math-line { margin-bottom: 4px; }
+  .proof-box .highlight { color: #f39c12; font-weight: 700; }
+  .proof-box .result-ok  { color: #2ecc71; }
+  .proof-box .result-bad { color: #e74c3c; }
+  .proof-box .comment    { color: #888; font-size: 0.82rem; }
+
+  /* Sliders */
+  .slider-section { margin: 20px 0; }
+  .slider-section h3 { font-size: 1.05rem; color: #1a5276; margin-bottom: 14px; }
+  .slider-row { margin-bottom: 16px; }
+  .slider-row label { display: flex; justify-content: space-between; font-size: 0.88rem; color: #444; margin-bottom: 6px; font-weight: 600; }
+  .slider-row label span { color: #2e86c1; font-weight: 800; }
+  input[type=range] {
+    width: 100%; height: 6px; border-radius: 3px;
+    background: linear-gradient(90deg, #2e86c1 var(--pct,50%), #d0e4f0 var(--pct,50%));
+    outline: none; cursor: pointer; appearance: none; -webkit-appearance: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    appearance: none; -webkit-appearance: none;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: #1a5276; border: 3px solid white;
+    box-shadow: 0 2px 8px rgba(26,82,118,0.4); cursor: pointer;
+  }
+
+  /* EU display */
+  .eu-live {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 18px 0;
+  }
+  .eu-block {
+    border-radius: 12px; padding: 16px; border: 2px solid #d0e4f0;
+    background: #f5fafd;
+  }
+  .eu-block h4 { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #666; margin-bottom: 10px; }
+  .eu-compare-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font-size: 0.85rem; }
+  .eu-val { font-weight: 800; font-size: 1.05rem; }
+  .eu-gt { font-size: 1.2rem; font-weight: 900; padding: 0 2px; }
+  .eu-gt.ok  { color: #27ae60; }
+  .eu-gt.bad { color: #e74c3c; }
+
+  .conflict-banner {
+    padding: 16px; border-radius: 12px; text-align: center;
+    font-size: 0.95rem; font-weight: 700; margin-top: 16px;
+    transition: all 0.3s;
+  }
+  .conflict-banner.ok     { background: #eaf7ee; color: #1e8449; border: 2px solid #7dcea0; }
+  .conflict-banner.bad    { background: #fdedec; color: #c0392b; border: 2px solid #f1948a; }
+  .conflict-banner.partial{ background: #fef9e7; color: #7d6608; border: 2px solid #f9ca57; }
+
+  .algebra-box {
+    background: #f5fafd; border: 1.5px solid #c5d8ea;
+    border-radius: 12px; padding: 18px; margin-top: 16px;
+    font-size: 0.87rem; line-height: 1.9; color: #333;
+  }
+  .algebra-box .step { margin-bottom: 4px; }
+  .algebra-box .step b { color: #1a5276; }
+  .algebra-box .step .hl { color: #e74c3c; font-weight: 700; }
+
+  .insight-box {
+    background: linear-gradient(135deg, #1a5276, #2e86c1);
+    color: white; border-radius: 14px; padding: 20px; margin-top: 20px;
+  }
+  .insight-box h3 { font-size: 1.1rem; margin-bottom: 8px; }
+  .insight-box p  { font-size: 0.9rem; line-height: 1.7; opacity: 0.92; }
+
+  @media (max-width: 500px) {
+    .options-row  { flex-direction: column; }
+    .eu-live      { grid-template-columns: 1fr; }
+    .choices-summary { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>The Allais Paradox</h1>
+  <p>A puzzle that breaks expected utility theory — discovered in 1953</p>
+</header>
+<div class="container">
+
+<!-- ═══════ PHASE 1 ═══════ -->
+<div id="phase1">
+  <div class="card">
+    <div class="phase-badge badge-1">Phase 1 — Make Your Choices</div>
+    <h2>Two independent decisions</h2>
+    <p>Read each decision carefully and click the option you'd genuinely prefer. There are no right or wrong answers — just be honest! You'll see why your choices matter in Phase 2.</p>
+  </div>
+
+  <!-- Decision 1 -->
+  <div class="card">
+    <div class="decision-label">Decision 1 — Pick one:</div>
+    <div class="options-row">
+      <div class="opt-card" id="card-1A" onclick="select(1,'A')">
+        <div class="opt-id">Option 1A</div>
+        <div class="prob-stack">
+          <div class="prob-row">
+            <div class="prob-bar-outer">
+              <div class="prob-seg seg-gold" style="width:100%">100% → $1,000,000</div>
+            </div>
+          </div>
+        </div>
+        <div class="prob-desc"><strong>$1,000,000</strong> guaranteed — you're a millionaire!</div>
+        <div class="emv-tag">EMV = $1,000,000</div>
+      </div>
+      <div class="opt-card" id="card-1B" onclick="select(1,'B')">
+        <div class="opt-id">Option 1B</div>
+        <div class="prob-stack">
+          <div class="prob-row">
+            <div class="prob-bar-outer">
+              <div class="prob-seg seg-green"  style="width:10%">10%</div>
+              <div class="prob-seg seg-gold"   style="width:89%">89%</div>
+              <div class="prob-seg seg-red"    style="width:1%"></div>
+            </div>
+          </div>
+        </div>
+        <div class="prob-desc"><strong>10%</strong> → $5M &nbsp;|&nbsp; <strong>89%</strong> → $1M &nbsp;|&nbsp; <strong>1%</strong> → $0</div>
+        <div class="emv-tag">EMV = $1,390,000</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Decision 2 -->
+  <div class="card">
+    <div class="decision-label">Decision 2 — Pick one:</div>
+    <div class="options-row">
+      <div class="opt-card" id="card-2A" onclick="select(2,'A')">
+        <div class="opt-id">Option 2A</div>
+        <div class="prob-stack">
+          <div class="prob-row">
+            <div class="prob-bar-outer">
+              <div class="prob-seg seg-gold" style="width:11%">11%</div>
+              <div class="prob-seg seg-gray" style="width:89%">89% → $0</div>
+            </div>
+          </div>
+        </div>
+        <div class="prob-desc"><strong>11%</strong> → $1,000,000 &nbsp;|&nbsp; <strong>89%</strong> → $0</div>
+        <div class="emv-tag">EMV = $110,000</div>
+      </div>
+      <div class="opt-card" id="card-2B" onclick="select(2,'B')">
+        <div class="opt-id">Option 2B</div>
+        <div class="prob-stack">
+          <div class="prob-row">
+            <div class="prob-bar-outer">
+              <div class="prob-seg seg-green" style="width:10%">10%</div>
+              <div class="prob-seg seg-gray"  style="width:90%">90% → $0</div>
+            </div>
+          </div>
+        </div>
+        <div class="prob-desc"><strong>10%</strong> → $5,000,000 &nbsp;|&nbsp; <strong>90%</strong> → $0</div>
+        <div class="emv-tag">EMV = $500,000</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="submit-row">
+    <button class="btn btn-primary" id="submit-btn" onclick="submitChoices()" disabled>
+      Select both options to continue →
+    </button>
+  </div>
+</div>
+
+<!-- ═══════ PHASE 2 ═══════ -->
+<div id="phase2" style="display:none;">
+
+  <div class="reveal-banner">
+    <h2>The Paradox Revealed</h2>
+    <p>Your choices are recorded. Now see why they create a mathematical contradiction.</p>
+  </div>
+
+  <!-- Choices summary -->
+  <div class="card">
+    <div class="phase-badge badge-2">Phase 2 — The Contradiction</div>
+    <h2>What you chose — and what most people choose</h2>
+    <div class="choices-summary" id="choices-summary"></div>
+    <p id="match-text" style="font-size:0.92rem;line-height:1.65;color:#444;"></p>
+  </div>
+
+  <!-- Proof -->
+  <div class="card">
+    <h2>Why no utility function can justify 1A + 2B</h2>
+    <p>Let U($0) = u₀, U($1M) = u₁, U($5M) = u₅. Suppose <strong>1A &gt; 1B</strong> (you prefer the sure million):</p>
+    <div class="proof-box" id="proof-box"></div>
+    <p style="font-size:0.9rem;color:#444;line-height:1.65;margin-top:14px;">
+      The algebra shows that <strong>preferring 1A over 1B forces EU(2A) &gt; EU(2B)</strong> — you must prefer 2A.
+      But most people choose 2B! That combination cannot come from any consistent utility function.
+    </p>
+  </div>
+
+  <!-- Interactive sliders -->
+  <div class="card">
+    <h2>Try it yourself — adjust utility values</h2>
+    <p>Move the sliders to any values you like. Watch the EU calculations update live. Can you ever make <strong>1A &gt; 1B AND 2B &gt; 2A</strong> at the same time?</p>
+
+    <div class="slider-section">
+      <div class="slider-row">
+        <label>U($0) — utility of getting nothing <span id="lbl-u0">0.00</span></label>
+        <input type="range" id="sl-u0" min="0" max="0.99" step="0.01" value="0" oninput="updateSliders()">
+      </div>
+      <div class="slider-row">
+        <label>U($1M) — utility of one million dollars <span id="lbl-u1">0.70</span></label>
+        <input type="range" id="sl-u1" min="0.01" max="0.99" step="0.01" value="0.70" oninput="updateSliders()">
+      </div>
+      <div class="slider-row">
+        <label>U($5M) — utility of five million dollars <span id="lbl-u5">1.00</span></label>
+        <input type="range" id="sl-u5" min="0.01" max="1" step="0.01" value="1.00" oninput="updateSliders()">
+      </div>
+    </div>
+
+    <div class="eu-live">
+      <div class="eu-block">
+        <h4>Decision 1</h4>
+        <div class="eu-compare-row">
+          <span>EU(1A) =</span><span class="eu-val" id="eu-1a">—</span>
+        </div>
+        <div class="eu-compare-row">
+          <span>EU(1B) =</span><span class="eu-val" id="eu-1b">—</span>
+        </div>
+        <div class="eu-compare-row" style="margin-top:8px;">
+          <span style="font-weight:700;">Verdict:</span>
+          <span class="eu-gt" id="verdict-1">—</span>
+        </div>
+      </div>
+      <div class="eu-block">
+        <h4>Decision 2</h4>
+        <div class="eu-compare-row">
+          <span>EU(2A) =</span><span class="eu-val" id="eu-2a">—</span>
+        </div>
+        <div class="eu-compare-row">
+          <span>EU(2B) =</span><span class="eu-val" id="eu-2b">—</span>
+        </div>
+        <div class="eu-compare-row" style="margin-top:8px;">
+          <span style="font-weight:700;">Verdict:</span>
+          <span class="eu-gt" id="verdict-2">—</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="conflict-banner" id="conflict-banner"></div>
+
+    <div class="algebra-box" id="algebra-box"></div>
+  </div>
+
+  <div class="insight-box">
+    <h3>What does this mean?</h3>
+    <p>
+      The Allais Paradox shows that <strong>real human choices violate Expected Utility Theory</strong> in a systematic way.
+      We tend to overweight certainty — getting $1M <em>for sure</em> feels psychologically special, beyond what its probability justifies.
+      This is called the <strong>certainty effect</strong>, and it's one of the foundations of behavioral economics and prospect theory.
+      Choosing 1A+2B isn't "irrational" in the everyday sense — it's just inconsistent with the mathematical axioms of EU theory.
+    </p>
+  </div>
+
+  <div style="text-align:center;margin-top:20px;">
+    <button class="btn btn-ghost" onclick="resetAll()">← Start Over</button>
+  </div>
+</div>
+
+</div><!-- /container -->
+
+<script>
+const choices = { 1: null, 2: null };
+
+function select(dec, opt) {
+  choices[dec] = opt;
+  // visual
+  document.getElementById('card-1A').classList.toggle('selected', dec===1 && opt==='A');
+  document.getElementById('card-1B').classList.toggle('selected', dec===1 && opt==='B');
+  document.getElementById('card-2A').classList.toggle('selected', dec===2 && opt==='A');
+  document.getElementById('card-2B').classList.toggle('selected', dec===2 && opt==='B');
+  const btn = document.getElementById('submit-btn');
+  if (choices[1] && choices[2]) {
+    btn.disabled = false;
+    btn.textContent = 'Reveal the paradox →';
+  }
+}
+
+function submitChoices() {
+  document.getElementById('phase1').style.display = 'none';
+  document.getElementById('phase2').style.display = 'block';
+  buildPhase2();
+  updateSliders();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function buildPhase2() {
+  const c1 = choices[1], c2 = choices[2];
+  const isParadox = (c1 === 'A' && c2 === 'B');
+
+  // summary chips
+  const sum = document.getElementById('choices-summary');
+  sum.innerHTML = `
+    <div class="choice-chip${isParadox?' paradox-chip':' safe-chip'}">
+      <div class="cc-label">Your Decision 1</div>
+      <div class="cc-val">Option 1${c1}</div>
+      <div class="cc-note">${c1==='A'?'Sure $1M':'89/10/1 mix'}</div>
+    </div>
+    <div class="choice-chip${isParadox?' paradox-chip':' safe-chip'}">
+      <div class="cc-label">Your Decision 2</div>
+      <div class="cc-val">Option 2${c2}</div>
+      <div class="cc-note">${c2==='A'?'11% at $1M':'10% at $5M'}</div>
+    </div>
+    <div class="choice-chip">
+      <div class="cc-label">Most people choose</div>
+      <div class="cc-val">1A + 2B</div>
+      <div class="cc-note">The paradoxical combo</div>
+    </div>`;
+
+  const mt = document.getElementById('match-text');
+  if (isParadox) {
+    mt.innerHTML = `<strong style="color:#e67e22;">You chose 1A + 2B — the classic paradoxical combination!</strong> This is what roughly 80% of people choose when presented with these options, including professional economists. Read on to see why no utility function can support it.`;
+  } else if (c1==='A' && c2==='A') {
+    mt.innerHTML = `You chose <strong>1A + 2A</strong> — this combination <em>is</em> consistent with expected utility theory (specifically, a risk-averse utility function). You avoided the paradox! But explore the sliders below to see why 1A+2B is the trap.`;
+  } else if (c1==='B' && c2==='B') {
+    mt.innerHTML = `You chose <strong>1B + 2B</strong> — also internally consistent. A risk-neutral or risk-seeking EU maximizer would prefer both higher-EMV options. You avoided the paradox.`;
+  } else {
+    mt.innerHTML = `You chose <strong>1B + 2A</strong> — the "opposite" combination from the most common paradox, but it <em>also</em> turns out to be inconsistent with EU theory (by the same algebraic argument in reverse). Explore the sliders!`;
+  }
+
+  // proof box
+  document.getElementById('proof-box').innerHTML = `
+<div class="math-line comment">// Let u0 = U($0), u1 = U($1M), u5 = U($5M)</div>
+<div class="math-line comment">// Suppose you prefer 1A over 1B:</div>
+<div class="math-line"><span class="highlight">EU(1A) &gt; EU(1B)</span></div>
+<div class="math-line">   1.00·u1  &gt;  0.10·u5 + 0.89·u1 + 0.01·u0</div>
+<div class="math-line">   0.11·u1  &gt;  0.10·u5 + 0.01·u0</div>
+<div class="math-line comment">// Now look at Decision 2:</div>
+<div class="math-line"><span class="highlight">EU(2A) vs EU(2B)</span></div>
+<div class="math-line">   EU(2A) = 0.11·u1 + 0.89·u0</div>
+<div class="math-line">   EU(2B) = 0.10·u5 + 0.90·u0</div>
+<div class="math-line">   EU(2A) - EU(2B) = 0.11·u1 - 0.10·u5 - 0.01·u0</div>
+<div class="math-line comment">// But we just showed  0.11·u1 &gt; 0.10·u5 + 0.01·u0, so:</div>
+<div class="math-line"><span class="result-ok">EU(2A) - EU(2B) &gt; 0  →  EU(2A) &gt; EU(2B)</span></div>
+<div class="math-line comment">// Therefore: 1A preferred ⟹ MUST prefer 2A, not 2B</div>
+<div class="math-line"><span class="result-bad">Choosing 1A + 2B is algebraically impossible under EU theory!</span></div>`;
+}
+
+function updateSliders() {
+  const u0 = +document.getElementById('sl-u0').value;
+  const u1 = +document.getElementById('sl-u1').value;
+  const u5 = +document.getElementById('sl-u5').value;
+
+  // update labels
+  document.getElementById('lbl-u0').textContent = u0.toFixed(2);
+  document.getElementById('lbl-u1').textContent = u1.toFixed(2);
+  document.getElementById('lbl-u5').textContent = u5.toFixed(2);
+
+  // update slider gradients
+  ['sl-u0','sl-u1','sl-u5'].forEach(id => {
+    const el = document.getElementById(id);
+    const pct = ((el.value - el.min) / (el.max - el.min) * 100).toFixed(1);
+    el.style.setProperty('--pct', pct + '%');
+  });
+
+  // EU calcs
+  const eu1A = 1.00 * u1;
+  const eu1B = 0.10 * u5 + 0.89 * u1 + 0.01 * u0;
+  const eu2A = 0.11 * u1 + 0.89 * u0;
+  const eu2B = 0.10 * u5 + 0.90 * u0;
+
+  document.getElementById('eu-1a').textContent = eu1A.toFixed(4);
+  document.getElementById('eu-1b').textContent = eu1B.toFixed(4);
+  document.getElementById('eu-2a').textContent = eu2A.toFixed(4);
+  document.getElementById('eu-2b').textContent = eu2B.toFixed(4);
+
+  const pref1 = eu1A > eu1B ? '1A wins' : eu1A < eu1B ? '1B wins' : 'Tie';
+  const pref2 = eu2A > eu2B ? '2A wins' : eu2A < eu2B ? '2B wins' : 'Tie';
+  const v1 = document.getElementById('verdict-1');
+  const v2 = document.getElementById('verdict-2');
+  v1.textContent = pref1;
+  v1.className = 'eu-gt ' + (eu1A >= eu1B ? 'ok' : 'bad');
+  v2.textContent = pref2;
+  v2.className = 'eu-gt ' + (eu2B >= eu2A ? 'bad' : 'ok');
+
+  // conflict analysis
+  const wants1A = eu1A > eu1B;
+  const wants2B = eu2B > eu2A;
+  const banner  = document.getElementById('conflict-banner');
+  if (wants1A && wants2B) {
+    banner.className = 'conflict-banner bad';
+    banner.textContent = 'CONFLICT: These utilities say prefer 1A AND 2B — but the math above proves that\'s impossible! Something in the calculation must be wrong... (Hint: check for rounding.)';
+  } else if (!wants1A && !wants2B) {
+    banner.className = 'conflict-banner ok';
+    banner.textContent = 'Consistent! These utilities prefer 1B and 2A together — no paradox.';
+  } else if (wants1A && !wants2B) {
+    banner.className = 'conflict-banner ok';
+    banner.textContent = 'Consistent! These utilities prefer 1A and 2A together — mathematically valid (risk-averse pattern).';
+  } else {
+    banner.className = 'conflict-banner ok';
+    banner.textContent = 'Consistent! These utilities prefer 1B and 2B together — mathematically valid (risk-neutral/seeking pattern).';
+  }
+
+  // algebra
+  const diff1 = (eu1A - eu1B).toFixed(4);
+  const diff2 = (eu2A - eu2B).toFixed(4);
+  document.getElementById('algebra-box').innerHTML = `
+    <div class="step"><b>EU(1A) - EU(1B)</b> = ${eu1A.toFixed(4)} - ${eu1B.toFixed(4)} = <span class="${eu1A>eu1B?'':'hl'}">${diff1}</span> ${eu1A>eu1B?'→ prefer 1A':'→ prefer 1B'}</div>
+    <div class="step"><b>EU(2A) - EU(2B)</b> = ${eu2A.toFixed(4)} - ${eu2B.toFixed(4)} = <span class="${eu2A>eu2B?'':'hl'}">${diff2}</span> ${eu2A>eu2B?'→ prefer 2A':'→ prefer 2B'}</div>
+    <div class="step" style="margin-top:8px;"><b>Key identity:</b> EU(2A) - EU(2B) = EU(1A) - EU(1B) &nbsp;(always true!)</div>
+    <div class="step">Check: ${diff2} ≈ ${diff1} ✓ &nbsp; The two differences are <em>always equal</em> — so you can never flip one without flipping the other.</div>`;
+}
+
+function resetAll() {
+  choices[1] = null; choices[2] = null;
+  ['1A','1B','2A','2B'].forEach(id => document.getElementById('card-'+id).classList.remove('selected'));
+  document.getElementById('submit-btn').disabled = true;
+  document.getElementById('submit-btn').textContent = 'Select both options to continue →';
+  document.getElementById('phase1').style.display = 'block';
+  document.getElementById('phase2').style.display = 'none';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Utility Profile Builder</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #eaf2f8;
+    color: #1a2a3a;
+    min-height: 100vh;
+    padding: 16px;
+  }
+  h1 { text-align: center; color: #1a5276; font-size: 1.5rem; margin-bottom: 4px; }
+  .subtitle { text-align: center; color: #555; font-size: 0.9rem; margin-bottom: 18px; }
+
+  .main-layout { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
+
+  /* ---- SLIDERS PANEL ---- */
+  .sliders-panel {
+    background: #fff; border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(26,82,118,0.10);
+    padding: 18px; flex: 1 1 280px; max-width: 360px;
+  }
+  .panel-title { font-size: 1rem; font-weight: 700; color: #1a5276; margin-bottom: 14px; }
+
+  .outcome-slider-row { margin-bottom: 13px; }
+  .out-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 4px;
+  }
+  .out-name { font-size: 0.88rem; font-weight: 600; color: #1a5276; }
+  .out-val {
+    font-size: 0.88rem; font-weight: 800; color: #2e86c1;
+    min-width: 38px; text-align: right;
+  }
+  .slider-track { position: relative; }
+  input[type=range] {
+    width: 100%; height: 6px; accent-color: #2e86c1;
+    cursor: pointer;
+  }
+  .slider-scale {
+    display: flex; justify-content: space-between;
+    font-size: 0.7rem; color: #aaa; margin-top: 1px;
+  }
+
+  /* ---- CHART PANEL ---- */
+  .chart-panel {
+    background: #fff; border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(26,82,118,0.10);
+    padding: 18px; flex: 1 1 300px; max-width: 420px;
+  }
+
+  .bar-chart { display: flex; flex-direction: column; gap: 6px; }
+  .chart-row { display: flex; align-items: center; gap: 8px; }
+  .chart-label { font-size: 0.78rem; color: #555; min-width: 130px; text-align: right; }
+  .chart-track {
+    flex: 1; height: 22px; background: #eaf2f8; border-radius: 6px; overflow: hidden;
+  }
+  .chart-fill {
+    height: 100%; border-radius: 6px;
+    transition: width 0.35s ease, background 0.35s;
+    display: flex; align-items: center; justify-content: flex-end;
+    padding-right: 7px; font-size: 0.75rem; font-weight: 700; color: #fff;
+    min-width: 2px;
+  }
+  .chart-rank {
+    font-size: 0.75rem; font-weight: 800; color: #1a5276;
+    min-width: 22px; text-align: center;
+  }
+
+  /* ---- GAMBLE PANEL ---- */
+  .gamble-panel {
+    background: #fff; border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(26,82,118,0.10);
+    padding: 18px; flex: 1 1 100%; max-width: 760px;
+  }
+  .gamble-grid { display: flex; gap: 14px; flex-wrap: wrap; }
+  .gamble-card {
+    flex: 1 1 240px;
+    background: #f4f8fb; border-radius: 12px; padding: 14px;
+    border-top: 4px solid #2e86c1;
+  }
+  .gamble-card:nth-child(2) { border-top-color: #27ae60; }
+  .gamble-title { font-size: 0.9rem; font-weight: 700; color: #1a5276; margin-bottom: 10px; }
+  .gamble-outcome-row {
+    display: grid; grid-template-columns: 1fr 70px;
+    gap: 5px 8px; align-items: center; margin-bottom: 8px;
+  }
+  .go-label { font-size: 0.8rem; color: #555; }
+  .go-head  { font-size: 0.72rem; font-weight: 700; color: #888; text-transform: uppercase; }
+  select.outcome-sel {
+    font-family: inherit; font-size: 0.8rem; border-radius: 6px;
+    border: 1.5px solid #d0dbe8; padding: 4px 6px; background: #fff;
+    color: #1a5276; font-weight: 600; width: 100%;
+  }
+  input.prob-in {
+    width: 100%; border: 1.5px solid #d0dbe8; border-radius: 6px;
+    padding: 4px 6px; font-size: 0.82rem; font-family: inherit;
+    text-align: center; font-weight: 600; color: #1a5276;
+  }
+  .eu-result {
+    margin-top: 10px; text-align: center; padding: 10px;
+    background: #eaf2f8; border-radius: 8px;
+  }
+  .eu-lbl { font-size: 0.75rem; color: #777; }
+  .eu-num { font-size: 1.4rem; font-weight: 900; color: #1a5276; }
+  .gamble-card.winner-g .eu-num { color: #1e8449; }
+  .gamble-card.loser-g { opacity: 0.82; }
+
+  .eu-compare-line {
+    text-align: center; font-size: 0.95rem; font-weight: 700;
+    color: #1a5276; padding: 12px; background: #eaf2f8;
+    border-radius: 10px; margin-top: 14px;
+  }
+
+  .insight-box {
+    background: #eaf2f8; border-left: 4px solid #2e86c1;
+    border-radius: 8px; padding: 10px 14px;
+    font-size: 0.85rem; color: #1a5276; margin-top: 14px;
+  }
+
+  .profile-reset {
+    text-align: center; margin-top: 14px;
+  }
+  button {
+    border: none; border-radius: 8px; cursor: pointer;
+    font-family: inherit; font-weight: 700; font-size: 0.85rem;
+    padding: 8px 18px; transition: filter 0.15s, transform 0.1s;
+  }
+  button:hover { filter: brightness(1.08); }
+  button:active { transform: scale(0.97); }
+  .btn-reset   { background: #e74c3c; color: #fff; margin-right: 6px; }
+  .btn-random  { background: #2e86c1; color: #fff; }
+</style>
+</head>
+<body>
+<h1>Utility Profile Builder</h1>
+<p class="subtitle">Rate how much each outcome matters to YOU — then see how your personal values change which gamble looks best!</p>
+
+<div class="main-layout">
+
+  <!-- SLIDERS -->
+  <div class="sliders-panel">
+    <div class="panel-title">Your Utility Ratings</div>
+    <div id="slidersContainer"></div>
+    <div class="profile-reset">
+      <button class="btn-reset" onclick="resetProfile()">Reset to Defaults</button>
+      <button class="btn-random" onclick="randomProfile()">Randomize</button>
+    </div>
+  </div>
+
+  <!-- RANKED CHART -->
+  <div class="chart-panel">
+    <div class="panel-title">Your Utility Ranking (Live)</div>
+    <div class="bar-chart" id="barChart"></div>
+    <div class="insight-box">
+      Your <strong>utility ranking</strong> shows what matters most to you. Two people can look at the same gamble and rationally choose differently — because they have different utility profiles!
+    </div>
+  </div>
+
+</div>
+
+<!-- COMPARE GAMBLES -->
+<div class="main-layout" style="margin-top:16px">
+  <div class="gamble-panel">
+    <div class="panel-title">Compare Decisions Using YOUR Utilities</div>
+    <div class="gamble-grid">
+      <!-- Gamble A -->
+      <div class="gamble-card" id="gambleCardA">
+        <div class="gamble-title">Gamble A</div>
+        <div class="gamble-outcome-row">
+          <div class="go-head">Outcome</div>
+          <div class="go-head">Prob</div>
+        </div>
+        <div id="gambleARows"></div>
+        <div class="eu-result">
+          <div class="eu-lbl">Expected Utility (EU)</div>
+          <div class="eu-num" id="euA">—</div>
+        </div>
+      </div>
+      <!-- Gamble B -->
+      <div class="gamble-card" id="gambleCardB">
+        <div class="gamble-title">Gamble B</div>
+        <div class="gamble-outcome-row">
+          <div class="go-head">Outcome</div>
+          <div class="go-head">Prob</div>
+        </div>
+        <div id="gambleBRows"></div>
+        <div class="eu-result">
+          <div class="eu-lbl">Expected Utility (EU)</div>
+          <div class="eu-num" id="euB">—</div>
+        </div>
+      </div>
+    </div>
+    <div class="eu-compare-line" id="euCompare">Adjust your sliders to see which gamble YOU prefer!</div>
+    <div class="insight-box">
+      <strong>Key Insight:</strong> Two students with different utility profiles might rationally prefer <em>different</em> gambles — even with the same probabilities and outcomes. There's no single "right" answer; rational choice depends on what you value.
+    </div>
+  </div>
+</div>
+
+<script>
+const outcomes = [
+  { id: 'winMoney',   label: 'Win $1,000',              emoji: '💰', defaultVal: 85 },
+  { id: 'freePizza',  label: 'Free pizza for a month',  emoji: '🍕', defaultVal: 70 },
+  { id: 'extraSleep', label: 'Extra hour of sleep',     emoji: '😴', defaultVal: 55 },
+  { id: 'aPlus',      label: 'Get an A+ on a test',     emoji: '📝', defaultVal: 90 },
+  { id: 'loseMoney',  label: 'Lose $50',                emoji: '😬', defaultVal: 15 },
+  { id: 'missParty',  label: 'Miss a party',            emoji: '😢', defaultVal: 25 },
+  { id: 'concert',    label: 'Get concert tickets',     emoji: '🎵', defaultVal: 75 },
+  { id: 'speech',     label: 'Have to give a speech',   emoji: '😰', defaultVal: 20 },
+];
+
+const BAR_COLORS = [
+  '#2e86c1','#27ae60','#e67e22','#8e44ad',
+  '#e74c3c','#1abc9c','#f39c12','#c0392b'
+];
+
+let utilVals = {};
+
+// Gamble definitions (outcome indices)
+const gambles = {
+  A: [
+    { outIdx: 0, prob: 0.4 },  // Win $1000
+    { outIdx: 3, prob: 0.4 },  // A+ on test
+    { outIdx: 4, prob: 0.2 },  // Lose $50
+  ],
+  B: [
+    { outIdx: 1, prob: 0.5 },  // Free pizza
+    { outIdx: 6, prob: 0.3 },  // Concert tickets
+    { outIdx: 7, prob: 0.2 },  // Give speech
+  ],
+};
+
+function initProfile() {
+  outcomes.forEach(o => { utilVals[o.id] = o.defaultVal; });
+}
+
+function renderSliders() {
+  const c = document.getElementById('slidersContainer');
+  c.innerHTML = '';
+  outcomes.forEach((o, i) => {
+    c.innerHTML += `
+    <div class="outcome-slider-row">
+      <div class="out-header">
+        <div class="out-name">${o.emoji} ${o.label}</div>
+        <div class="out-val" id="val_${o.id}">${utilVals[o.id]}</div>
+      </div>
+      <div class="slider-track">
+        <input type="range" min="0" max="100" value="${utilVals[o.id]}"
+          id="slider_${o.id}" oninput="onSlide('${o.id}', this.value)">
+      </div>
+      <div class="slider-scale"><span>0 — Worst</span><span>100 — Best</span></div>
+    </div>`;
+  });
+}
+
+function onSlide(id, v) {
+  utilVals[id] = parseInt(v);
+  document.getElementById('val_'+id).textContent = v;
+  renderChart();
+  computeEU();
+}
+
+function renderChart() {
+  // Sort outcomes by utility descending
+  const sorted = outcomes.map((o, i) => ({ ...o, util: utilVals[o.id], origIdx: i }))
+    .sort((a, b) => b.util - a.util);
+
+  const chart = document.getElementById('barChart');
+  chart.innerHTML = '';
+  sorted.forEach((o, rank) => {
+    const pct = o.util;
+    const color = BAR_COLORS[o.origIdx];
+    chart.innerHTML += `
+    <div class="chart-row">
+      <div class="chart-label">${o.emoji} ${o.label}</div>
+      <div class="chart-track">
+        <div class="chart-fill" style="width:${pct}%;background:${color}">${pct}</div>
+      </div>
+      <div class="chart-rank">#${rank+1}</div>
+    </div>`;
+  });
+}
+
+function renderGambleSelects() {
+  function makeRows(side, gambleArr) {
+    const container = document.getElementById('gamble'+side+'Rows');
+    let html = '';
+    gambleArr.forEach((g, i) => {
+      const opts = outcomes.map((o, oi) =>
+        `<option value="${oi}" ${oi === g.outIdx ? 'selected' : ''}>${o.emoji} ${o.label}</option>`
+      ).join('');
+      html += `<div class="gamble-outcome-row">
+        <select class="outcome-sel" id="gSel${side}${i}" onchange="computeEU()">${opts}</select>
+        <input class="prob-in" type="number" min="0" max="1" step="0.05"
+          value="${g.prob}" id="gProb${side}${i}" oninput="computeEU()">
+      </div>`;
+    });
+    container.innerHTML = html;
+  }
+  makeRows('A', gambles.A);
+  makeRows('B', gambles.B);
+}
+
+function computeEU() {
+  function getEU(side, arr) {
+    let eu = 0;
+    arr.forEach((_, i) => {
+      const selEl   = document.getElementById('gSel'+side+i);
+      const probEl  = document.getElementById('gProb'+side+i);
+      if (!selEl || !probEl) return;
+      const outIdx  = parseInt(selEl.value);
+      const prob    = parseFloat(probEl.value) || 0;
+      const outId   = outcomes[outIdx].id;
+      eu += prob * utilVals[outId];
+    });
+    return eu;
+  }
+
+  const euA = getEU('A', gambles.A);
+  const euB = getEU('B', gambles.B);
+
+  document.getElementById('euA').textContent = euA.toFixed(1);
+  document.getElementById('euB').textContent = euB.toFixed(1);
+
+  const cA = document.getElementById('gambleCardA');
+  const cB = document.getElementById('gambleCardB');
+  const diff = Math.abs(euA - euB);
+  const threshold = 0.5;
+
+  if (diff < threshold) {
+    cA.className = 'gamble-card'; cB.className = 'gamble-card';
+    document.getElementById('euCompare').textContent = 'Both gambles are equally good for you — it\'s a tie!';
+  } else if (euA > euB) {
+    cA.className = 'gamble-card winner-g'; cB.className = 'gamble-card loser-g';
+    document.getElementById('euCompare').innerHTML =
+      `Based on YOUR utilities, <strong>Gamble A</strong> is better for you (EU: ${euA.toFixed(1)} vs ${euB.toFixed(1)})`;
+  } else {
+    cA.className = 'gamble-card loser-g'; cB.className = 'gamble-card winner-g';
+    document.getElementById('euCompare').innerHTML =
+      `Based on YOUR utilities, <strong>Gamble B</strong> is better for you (EU: ${euB.toFixed(1)} vs ${euA.toFixed(1)})`;
+  }
+}
+
+function resetProfile() {
+  initProfile();
+  outcomes.forEach(o => {
+    document.getElementById('slider_'+o.id).value = utilVals[o.id];
+    document.getElementById('val_'+o.id).textContent = utilVals[o.id];
+  });
+  renderChart();
+  computeEU();
+}
+
+function randomProfile() {
+  outcomes.forEach(o => {
+    utilVals[o.id] = Math.floor(Math.random() * 101);
+    document.getElementById('slider_'+o.id).value = utilVals[o.id];
+    document.getElementById('val_'+o.id).textContent = utilVals[o.id];
+  });
+  renderChart();
+  computeEU();
+}
+
+// Init
+initProfile();
+renderSliders();
+renderChart();
+renderGambleSelects();
+computeEU();
+</script>
+</body>
+</html>

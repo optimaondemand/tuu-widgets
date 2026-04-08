@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pascal's Wager EU Calculator</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #eaf2f8; color: #1a1a2e; min-height: 100vh; }
+
+  header {
+    background: linear-gradient(135deg, #1a5276, #2e86c1);
+    color: white; padding: 20px 24px; text-align: center;
+  }
+  header h1 { font-size: 1.5rem; font-weight: 700; }
+  header p  { font-size: 0.9rem; opacity: 0.88; margin-top: 4px; }
+
+  .container { max-width: 760px; margin: 0 auto; padding: 18px 16px 50px; }
+
+  .card {
+    background: white; border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(26,82,118,0.1);
+    padding: 22px; margin-bottom: 18px;
+    animation: fadeUp 0.3s ease;
+  }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:none} }
+  .card h2 { font-size: 1.1rem; color: #1a5276; margin-bottom: 8px; }
+  .card p  { font-size: 0.88rem; line-height: 1.65; color: #444; margin-bottom: 8px; }
+
+  /* Disclaimer */
+  .disclaimer {
+    background: #fef9e7; border: 1.5px solid #f9ca57;
+    border-radius: 12px; padding: 14px 16px; margin-bottom: 18px;
+    font-size: 0.85rem; color: #5d4e00; line-height: 1.6;
+  }
+  .disclaimer strong { color: #7d6608; }
+
+  /* Probability slider */
+  .prob-section { margin: 14px 0; }
+  .prob-section label { display: flex; justify-content: space-between; font-size: 0.88rem; color: #444; margin-bottom: 6px; font-weight: 600; }
+  .prob-section label span { color: #2e86c1; font-weight: 800; font-size: 1rem; }
+  input[type=range] {
+    width: 100%; height: 7px; border-radius: 4px;
+    background: linear-gradient(90deg, #2e86c1 var(--pct,50%), #d0e4f0 var(--pct,50%));
+    outline: none; cursor: pointer; appearance: none; -webkit-appearance: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    appearance: none; -webkit-appearance: none;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: #1a5276; border: 3px solid white;
+    box-shadow: 0 2px 8px rgba(26,82,118,0.4); cursor: pointer;
+  }
+  .prob-markers { display: flex; justify-content: space-between; font-size: 0.7rem; color: #888; margin-top: 4px; }
+
+  /* Decision table */
+  .table-wrap { overflow-x: auto; margin: 16px 0; }
+  table {
+    width: 100%; border-collapse: collapse; min-width: 400px;
+    font-size: 0.88rem;
+  }
+  table th {
+    background: #1a5276; color: white; padding: 10px 12px;
+    font-weight: 700; text-align: center; font-size: 0.82rem;
+    letter-spacing: 0.4px;
+  }
+  table th:first-child { text-align: left; border-radius: 8px 0 0 0; }
+  table th:last-child  { border-radius: 0 8px 0 0; }
+  table td { padding: 10px 12px; border-bottom: 1px solid #e8f0f5; vertical-align: middle; }
+  table tr:last-child td { border-bottom: none; }
+  table tr:nth-child(even) td { background: #f8fbfd; }
+  .row-label { font-weight: 700; color: #1a5276; font-size: 0.9rem; }
+  .row-label small { display: block; font-size: 0.75rem; color: #888; font-weight: 400; margin-top: 2px; }
+
+  /* Payoff cells */
+  .payoff-cell { text-align: center; }
+  .payoff-display {
+    font-weight: 800; font-size: 1rem; padding: 4px 8px;
+    border-radius: 6px; display: inline-block;
+  }
+  .payoff-inf    { color: #1e8449; background: #eaf7ee; }
+  .payoff-neginf { color: #c0392b; background: #fdedec; }
+  .payoff-pos    { color: #1a5276; background: #eaf2f8; }
+  .payoff-neg    { color: #c0392b; background: #fdedec; }
+
+  .payoff-input {
+    width: 90px; padding: 6px 8px; border-radius: 7px;
+    border: 2px solid #c5d8ea; font-size: 0.9rem; font-weight: 700;
+    color: #1a5276; text-align: center; outline: none;
+    background: white; transition: border-color 0.15s;
+  }
+  .payoff-input:focus { border-color: #2e86c1; }
+  .payoff-input.inf-input { border-color: #7dcea0; background: #eaf7ee; color: #1e8449; }
+  .payoff-input.neginf-input { border-color: #f1948a; background: #fdedec; color: #c0392b; }
+
+  /* EU result cells */
+  .eu-cell { text-align: center; font-weight: 800; font-size: 1.05rem; }
+  .eu-inf     { color: #1e8449; }
+  .eu-neginf  { color: #c0392b; }
+  .eu-undef   { color: #e67e22; }
+  .eu-number  { color: #1a5276; }
+
+  /* EU summary */
+  .eu-summary { display: flex; gap: 12px; flex-wrap: wrap; margin: 16px 0; }
+  .eu-box {
+    flex: 1; min-width: 140px; padding: 16px 14px; border-radius: 12px;
+    text-align: center; border: 2.5px solid transparent;
+    transition: all 0.2s;
+  }
+  .eu-box .eb-action { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+  .eu-box .eb-val    { font-size: 1.6rem; font-weight: 900; }
+  .eu-box .eb-sub    { font-size: 0.78rem; margin-top: 4px; }
+  .eu-box.winner  { background: #eaf7ee; border-color: #7dcea0; }
+  .eu-box.winner .eb-action { color: #1e8449; }
+  .eu-box.winner .eb-val    { color: #1e8449; }
+  .eu-box.loser   { background: #f8fbfd; border-color: #d0e4f0; }
+  .eu-box.loser .eb-action  { color: #666; }
+  .eu-box.loser .eb-val     { color: #888; }
+  .eu-box.undefined-box { background: #fdebd0; border-color: #f0a030; }
+  .eu-box.undefined-box .eb-action { color: #7d6608; }
+  .eu-box.undefined-box .eb-val    { color: #e67e22; }
+
+  /* Verdict */
+  .verdict-banner {
+    padding: 14px 16px; border-radius: 12px; margin: 14px 0;
+    font-size: 0.92rem; font-weight: 600; line-height: 1.6;
+    transition: all 0.3s;
+  }
+  .verdict-believe  { background: #eaf7ee; color: #1e8449; border: 2px solid #7dcea0; }
+  .verdict-dontbelieve { background: #fdedec; color: #c0392b; border: 2px solid #f1948a; }
+  .verdict-undefined { background: #fdebd0; color: #7d6608; border: 2px solid #f0a030; }
+  .verdict-equal    { background: #eaf2f8; color: #1a5276; border: 2px solid #85c1e9; }
+
+  /* Many gods mode */
+  .btn {
+    padding: 10px 22px; border-radius: 30px; font-size: 0.9rem;
+    font-weight: 700; cursor: pointer; border: none; transition: all 0.18s;
+  }
+  .btn-primary { background: linear-gradient(135deg, #1a5276, #2e86c1); color: white; }
+  .btn-primary:hover { opacity: 0.88; transform: translateY(-2px); box-shadow: 0 5px 16px rgba(26,82,118,0.28); }
+  .btn-ghost { background: transparent; border: 2px solid #2e86c1; color: #2e86c1; }
+  .btn-ghost:hover { background: #eaf2f8; }
+  .btn-warn { background: linear-gradient(135deg, #922b21, #e74c3c); color: white; }
+  .btn-warn:hover { opacity: 0.88; }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 14px 0; }
+
+  /* Many gods panel */
+  #many-gods-panel {
+    background: #fdebd0; border: 1.5px solid #f0a030;
+    border-radius: 14px; padding: 18px; margin-top: 16px;
+    display: none;
+    animation: fadeUp 0.3s ease;
+  }
+  #many-gods-panel h3 { font-size: 1rem; color: #7d6608; margin-bottom: 10px; }
+  #many-gods-panel p  { font-size: 0.88rem; color: #5d4e00; line-height: 1.65; margin-bottom: 8px; }
+
+  .undef-display {
+    font-size: 2rem; font-weight: 900; color: #e67e22;
+    text-align: center; padding: 14px;
+    background: white; border-radius: 10px; margin: 12px 0;
+    border: 2px solid #f0a030;
+  }
+  .undef-display small { display: block; font-size: 0.85rem; color: #7d6608; font-weight: 600; margin-top: 4px; }
+
+  .math-box {
+    background: #1a1a2e; color: #e8f4fc; border-radius: 10px;
+    padding: 14px; font-family: 'Courier New', monospace; font-size: 0.85rem;
+    line-height: 1.9; margin: 10px 0;
+  }
+  .math-box .hl { color: #f39c12; }
+  .math-box .ok { color: #2ecc71; }
+  .math-box .bad{ color: #e74c3c; }
+
+  /* Insight */
+  .insight-box {
+    background: linear-gradient(135deg, #1a5276, #2e86c1);
+    color: white; border-radius: 14px; padding: 20px;
+  }
+  .insight-box h3 { font-size: 1.1rem; margin-bottom: 8px; }
+  .insight-box p  { font-size: 0.9rem; line-height: 1.7; opacity: 0.93; margin-bottom: 8px; }
+  .insight-box p:last-child { margin-bottom: 0; }
+
+  @media (max-width: 480px) {
+    .eu-summary { flex-direction: column; }
+    .payoff-input { width: 75px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Pascal's Wager EU Calculator</h1>
+  <p>A mathematical argument — what does expected utility theory say?</p>
+</header>
+<div class="container">
+
+  <!-- Disclaimer -->
+  <div class="disclaimer">
+    <strong>Note:</strong> This widget treats Pascal's Wager as a <em>mathematical</em> exercise in expected utility theory — the same framework used throughout this course. It is not intended to advocate for or against any religious or philosophical position. The goal is to understand how infinite values interact with EU calculations, and what happens when the framework breaks down.
+  </div>
+
+  <!-- Intro -->
+  <div class="card">
+    <h2>The Setup</h2>
+    <p>
+      In 1670, Blaise Pascal posed a decision-theory argument: if God exists and belief leads to infinite reward while disbelief leads to infinite punishment, then — even if the probability of God's existence is very small — expected utility theory says you should believe.
+    </p>
+    <p>
+      Let's build the decision table, make the payoffs editable, and see exactly how the math works — and where it breaks.
+    </p>
+
+    <!-- Probability slider -->
+    <div class="prob-section" style="margin-top:16px;">
+      <label>
+        P(God exists): <span id="prob-display">0.500</span>
+        <span style="font-size:0.8rem;color:#888;font-weight:400;">P(doesn't exist) = <span id="prob-comp">0.500</span></span>
+      </label>
+      <input type="range" id="prob-slider" min="0.001" max="0.999" step="0.001" value="0.5" oninput="updateAll()">
+      <div class="prob-markers">
+        <span>0.001</span><span>0.1</span><span>0.25</span><span>0.5</span><span>0.75</span><span>0.9</span><span>0.999</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Decision table -->
+  <div class="card">
+    <h2>Decision Table</h2>
+    <p>Edit any payoff value in the table. Type <strong>inf</strong> for +∞ or <strong>-inf</strong> for −∞.</p>
+    <div class="table-wrap">
+      <table id="decision-table">
+        <thead>
+          <tr>
+            <th>Action</th>
+            <th>God EXISTS<br><small style="font-weight:400;opacity:0.85;" id="th-exists">P = 0.500</small></th>
+            <th>God DOESN'T EXIST<br><small style="font-weight:400;opacity:0.85;" id="th-noexist">P = 0.500</small></th>
+            <th>Expected Utility</th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+
+    <!-- EU Summary -->
+    <div class="eu-summary" id="eu-summary"></div>
+    <div class="verdict-banner" id="verdict-banner"></div>
+
+    <!-- Controls -->
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="resetDefaults()">Reset to Defaults</button>
+      <button class="btn btn-primary" id="many-gods-btn" onclick="toggleManyGods()">Many Gods Mode</button>
+    </div>
+
+    <!-- Many gods panel -->
+    <div id="many-gods-panel">
+      <h3>The Many Gods Objection</h3>
+      <p>
+        What if there are multiple possible gods with <em>conflicting</em> reward structures? For example: <strong>God A</strong> rewards belief, but <strong>God B</strong> punishes belief (because God B values intellectual honesty and only rewards non-believers).
+      </p>
+      <p>
+        If both have nonzero probability, then EU(Believe) includes +∞ (from God A) and −∞ (from God B). In mathematics, ∞ − ∞ is <strong>undefined</strong> — not a number you can compare.
+      </p>
+      <div class="undef-display">
+        EU(Believe) = <span style="color:#2ecc71;">+∞</span> + <span style="color:#e74c3c;">(−∞)</span> = UNDEFINED
+        <small>The wager loses its mathematical force</small>
+      </div>
+      <div class="math-box">
+<span class="hl">God A</span>: P(A)·∞  =  <span class="ok">+∞</span>  (belief rewarded)<br>
+<span class="hl">God B</span>: P(B)·(−∞) =  <span class="bad">−∞</span>  (belief punished)<br>
+EU(Believe) = <span class="ok">+∞</span> + <span class="bad">(−∞)</span> = <span style="color:#f39c12;font-weight:700;">UNDEFINED</span><br>
+EU(Don't Believe) = <span class="bad">−∞</span> + <span class="ok">+∞</span> = <span style="color:#f39c12;font-weight:700;">UNDEFINED</span><br>
+<br>
+<span style="color:#aaa;">→ No rational choice can be derived from undefined EU values.</span>
+      </div>
+      <p>
+        This is one of the classical objections to Pascal's Wager. Once you allow for multiple incompatible infinite-payoff scenarios, the entire EU framework breaks down. The argument requires you to treat <em>one specific theological scenario</em> as the only one worth considering.
+      </p>
+    </div>
+  </div>
+
+  <!-- Finite payoff exploration -->
+  <div class="card">
+    <h2>What if the payoffs were finite?</h2>
+    <p>
+      Pascal's argument only works because of infinite payoffs. Let's see what happens when you use large but finite numbers. Try setting the values to +10,000 and -10,000 instead of ±∞.
+    </p>
+    <p>
+      With finite payoffs, the probability slider <em>actually matters</em> — small enough P(God exists) can flip the decision. That's the key difference: infinite values dominate any finite probability.
+    </p>
+    <div id="finite-insight" style="padding:12px;border-radius:10px;background:#eaf2f8;border:1.5px solid #c5d8ea;font-size:0.88rem;color:#333;line-height:1.65;margin-top:8px;"></div>
+  </div>
+
+  <!-- Insight -->
+  <div class="card">
+    <div class="insight-box">
+      <h3>What this tells us about EU theory</h3>
+      <p>
+        Pascal's Wager is one of the earliest known applications of expected utility reasoning — predating Bernoulli and von Neumann by decades. It reveals a genuine weakness in EU theory: when payoffs can be infinite, the framework produces paradoxes.
+      </p>
+      <p>
+        Any nonzero probability multiplied by ∞ equals ∞, so a single infinite outcome swamps all other considerations, regardless of how tiny its probability is. This is a feature, not a bug — it's the same logic that makes the St. Petersburg paradox work.
+      </p>
+      <p>
+        Modern decision theory handles this in several ways: by bounding utility functions, using lexicographic preferences, or requiring that infinite utilities never actually occur. The wager is a powerful case study for understanding <em>when</em> and <em>why</em> the EU framework needs limits.
+      </p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+// rows: { label, sublabel, payoffs: [existsVal, noExistsVal] }
+// payoff values: number or 'inf' or '-inf'
+
+let rows = [];
+let manyGodsActive = false;
+
+function defaultRows() {
+  return [
+    { label: 'Believe in God', sublabel: 'Accept the belief, live accordingly', payoffs: ['inf', -10] },
+    { label: "Don't Believe",   sublabel: 'Live as though God does not exist',   payoffs: ['-inf', 10]  },
+  ];
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  rows = defaultRows();
+  renderTable();
+  updateAll();
+});
+
+function resetDefaults() {
+  rows = defaultRows();
+  renderTable();
+  updateAll();
+}
+
+// ── Table rendering ────────────────────────────────────────────────────────
+function renderTable() {
+  const tbody = document.getElementById('table-body');
+  tbody.innerHTML = '';
+  rows.forEach((row, ri) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="row-label">${row.label}<small>${row.sublabel}</small></td>
+      <td class="payoff-cell" id="td-${ri}-0"></td>
+      <td class="payoff-cell" id="td-${ri}-1"></td>
+      <td class="eu-cell" id="eu-${ri}">—</td>`;
+    tbody.appendChild(tr);
+    // create inputs
+    [0, 1].forEach(ci => {
+      const cell = document.getElementById(`td-${ri}-${ci}`);
+      const inp  = document.createElement('input');
+      inp.type  = 'text';
+      inp.className = 'payoff-input';
+      inp.value = formatPayoffInput(row.payoffs[ci]);
+      styleInput(inp, row.payoffs[ci]);
+      inp.addEventListener('input', () => {
+        const v = parsePayoff(inp.value);
+        row.payoffs[ci] = v;
+        styleInput(inp, v);
+        updateAll();
+      });
+      cell.appendChild(inp);
+    });
+  });
+}
+
+function formatPayoffInput(v) {
+  if (v === 'inf')  return 'inf';
+  if (v === '-inf') return '-inf';
+  return String(v);
+}
+
+function parsePayoff(s) {
+  const t = s.trim().toLowerCase();
+  if (t === 'inf' || t === '+inf' || t === 'infinity' || t === '∞') return 'inf';
+  if (t === '-inf' || t === '-infinity' || t === '-∞') return '-inf';
+  const n = parseFloat(t);
+  return isNaN(n) ? 0 : n;
+}
+
+function styleInput(inp, v) {
+  inp.className = 'payoff-input';
+  if (v === 'inf')  inp.classList.add('inf-input');
+  if (v === '-inf') inp.classList.add('neginf-input');
+}
+
+// ── EU calculation ─────────────────────────────────────────────────────────
+function calcEU(payoffs, p) {
+  // payoffs[0] = exists (prob p), payoffs[1] = not exists (prob 1-p)
+  const q = 1 - p;
+  const v0 = payoffs[0], v1 = payoffs[1];
+
+  const term0 = multiplyProbVal(p, v0);
+  const term1 = multiplyProbVal(q, v1);
+  return addTerms(term0, term1);
+}
+
+function multiplyProbVal(prob, val) {
+  if (prob === 0) return 0;
+  if (val === 'inf')  return 'inf';
+  if (val === '-inf') return '-inf';
+  return prob * val;
+}
+
+function addTerms(a, b) {
+  if (a === 'inf'  && b === '-inf') return 'undef';
+  if (a === '-inf' && b === 'inf')  return 'undef';
+  if (a === 'inf'  || b === 'inf')  return 'inf';
+  if (a === '-inf' || b === '-inf') return '-inf';
+  if (a === 'undef' || b === 'undef') return 'undef';
+  return a + b;
+}
+
+function formatEU(v) {
+  if (v === 'inf')   return '+∞';
+  if (v === '-inf')  return '−∞';
+  if (v === 'undef') return 'UNDEFINED';
+  return v.toFixed(2);
+}
+
+function euClass(v) {
+  if (v === 'inf')   return 'eu-inf';
+  if (v === '-inf')  return 'eu-neginf';
+  if (v === 'undef') return 'eu-undef';
+  return 'eu-number';
+}
+
+// ── Update display ─────────────────────────────────────────────────────────
+function updateAll() {
+  const p = +document.getElementById('prob-slider').value;
+  const pct = ((p - 0.001) / (0.999 - 0.001) * 100).toFixed(2);
+  document.getElementById('prob-slider').style.setProperty('--pct', pct + '%');
+  document.getElementById('prob-display').textContent  = p.toFixed(3);
+  document.getElementById('prob-comp').textContent     = (1-p).toFixed(3);
+  document.getElementById('th-exists').textContent   = `P = ${p.toFixed(3)}`;
+  document.getElementById('th-noexist').textContent  = `P = ${(1-p).toFixed(3)}`;
+
+  const euVals = rows.map(row => calcEU(row.payoffs, p));
+
+  // update EU cells
+  rows.forEach((row, ri) => {
+    const v  = euVals[ri];
+    const td = document.getElementById(`eu-${ri}`);
+    td.textContent = formatEU(v);
+    td.className   = 'eu-cell ' + euClass(v);
+  });
+
+  // EU summary & verdict
+  buildEUSummary(euVals);
+  buildVerdict(euVals);
+  buildFiniteInsight(p);
+}
+
+function buildEUSummary(euVals) {
+  const wrap = document.getElementById('eu-summary');
+  wrap.innerHTML = '';
+  const allUndef = euVals.every(v => v === 'undef');
+  const maxEU = allUndef ? null : findMaxEU(euVals);
+
+  rows.forEach((row, ri) => {
+    const v = euVals[ri];
+    const isWinner = !allUndef && v === maxEU && euVals.filter(x => x === maxEU).length < euVals.length;
+    const isUndef  = v === 'undef';
+    let cls = isUndef ? 'undefined-box' : isWinner ? 'winner' : 'loser';
+    wrap.innerHTML += `
+      <div class="eu-box ${cls}">
+        <div class="eb-action">${row.label}</div>
+        <div class="eb-val">${formatEU(v)}</div>
+        <div class="eb-sub">${isWinner ? 'Higher EU — preferred' : isUndef ? 'Cannot compare' : 'Lower EU'}</div>
+      </div>`;
+  });
+}
+
+function findMaxEU(vals) {
+  let best = null;
+  for (const v of vals) {
+    if (v === 'undef') continue;
+    if (best === null) { best = v; continue; }
+    if (v === 'inf') return 'inf';
+    if (best === 'inf') return 'inf';
+    if (v === '-inf') continue;
+    if (best === '-inf') { best = v; continue; }
+    if (v > best) best = v;
+  }
+  return best;
+}
+
+function buildVerdict(euVals) {
+  const banner = document.getElementById('verdict-banner');
+  const allUndef = euVals.every(v => v === 'undef');
+  if (allUndef) {
+    banner.className = 'verdict-banner verdict-undefined';
+    banner.innerHTML = '<strong>UNDEFINED:</strong> With competing infinite values, expected utility cannot be computed. The wager loses its mathematical force.';
+    return;
+  }
+  const anyUndef = euVals.some(v => v === 'undef');
+  if (anyUndef) {
+    banner.className = 'verdict-banner verdict-undefined';
+    banner.innerHTML = '<strong>MIXED:</strong> Some EU values are undefined due to competing infinities. No clear rational recommendation is possible.';
+    return;
+  }
+  const eu0 = euVals[0], eu1 = euVals[1];
+  const compare = compareEU(eu0, eu1);
+  if (compare > 0) {
+    banner.className = 'verdict-banner verdict-believe';
+    banner.innerHTML = `<strong>EU Theory recommends: Believe.</strong> EU(Believe) = ${formatEU(eu0)} &gt; EU(Don't Believe) = ${formatEU(eu1)}. ${eu0==='inf'?'Any nonzero probability of an infinite payoff dominates all finite outcomes.':''}`;
+  } else if (compare < 0) {
+    banner.className = 'verdict-banner verdict-dontbelieve';
+    banner.innerHTML = `<strong>EU Theory recommends: Don't Believe.</strong> EU(Don't Believe) = ${formatEU(eu1)} &gt; EU(Believe) = ${formatEU(eu0)}.`;
+  } else {
+    banner.className = 'verdict-banner verdict-equal';
+    banner.innerHTML = `<strong>EU Theory is indifferent.</strong> Both actions yield ${formatEU(eu0)}.`;
+  }
+}
+
+function compareEU(a, b) {
+  if (a === 'undef' || b === 'undef') return 0;
+  if (a === 'inf'  && b === 'inf')  return 0;
+  if (a === '-inf' && b === '-inf') return 0;
+  if (a === 'inf')  return 1;
+  if (b === 'inf')  return -1;
+  if (a === '-inf') return -1;
+  if (b === '-inf') return 1;
+  return a > b ? 1 : a < b ? -1 : 0;
+}
+
+function buildFiniteInsight(p) {
+  const el = document.getElementById('finite-insight');
+  // compute with finite large payoffs for illustration
+  const bigPlus  = 1000000;
+  const bigMinus = -1000000;
+  const smallPlus  = 10;
+  const smallMinus = -10;
+  const euBelieve    = p * bigPlus  + (1-p) * smallMinus;
+  const euDontBelieve = p * bigMinus + (1-p) * smallPlus;
+  const breakeven = (smallPlus - smallMinus) / (bigPlus - bigMinus - smallMinus + smallPlus);
+  el.innerHTML = `
+    With finite payoffs of <strong>±$1,000,000</strong> (instead of ±∞), at your current probability P = ${p.toFixed(3)}:<br>
+    EU(Believe) = <strong>$${euBelieve.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</strong> &nbsp;|&nbsp;
+    EU(Don't Believe) = <strong>$${euDontBelieve.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</strong><br>
+    <span style="color:#555;">The breakeven probability (where you'd be indifferent) is approximately <strong>${(breakeven * 100).toFixed(4)}%</strong>. Above that, EU theory recommends belief. Below it, non-belief. With <em>infinite</em> payoffs, the breakeven drops to literally 0% — any probability at all, however tiny, tips the scales.</span>`;
+}
+
+// ── Many Gods ──────────────────────────────────────────────────────────────
+function toggleManyGods() {
+  manyGodsActive = !manyGodsActive;
+  const panel = document.getElementById('many-gods-panel');
+  const btn   = document.getElementById('many-gods-btn');
+  panel.style.display = manyGodsActive ? 'block' : 'none';
+  btn.textContent = manyGodsActive ? 'Hide Many Gods Mode' : 'Many Gods Mode';
+  btn.className   = manyGodsActive ? 'btn btn-warn' : 'btn btn-primary';
+
+  if (manyGodsActive) {
+    // Add a second god row
+    if (rows.length === 2) {
+      rows.push({ label: 'Believe (vs God B)', sublabel: 'God B punishes belief', payoffs: ['-inf', -10] });
+      rows.push({ label: "Don't Believe (vs God B)", sublabel: 'God B rewards non-belief', payoffs: ['inf', 10] });
+    }
+    renderTable();
+    updateAll();
+    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } else {
+    rows = defaultRows();
+    renderTable();
+    updateAll();
+  }
+}
+</script>
+</body>
+</html>

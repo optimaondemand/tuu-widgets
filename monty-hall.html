@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monty Hall Simulator</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #eaf2f8;
+    color: #1a2733;
+    min-height: 100vh;
+    padding: 16px;
+  }
+  h1 {
+    text-align: center;
+    color: #1a5276;
+    font-size: 1.5rem;
+    margin-bottom: 6px;
+  }
+  .instructions {
+    background: #fff;
+    border-left: 4px solid #2e86c1;
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 0.88rem;
+    color: #34495e;
+    margin-bottom: 18px;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .game-area {
+    max-width: 700px;
+    margin: 0 auto;
+  }
+  .phase-label {
+    text-align: center;
+    font-weight: 700;
+    font-size: 1rem;
+    color: #1a5276;
+    margin-bottom: 12px;
+    min-height: 24px;
+  }
+  .doors-row {
+    display: flex;
+    gap: 14px;
+    justify-content: center;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+  }
+  .door-card {
+    width: 140px;
+    height: 200px;
+    background: linear-gradient(160deg, #2e86c1, #1a5276);
+    border-radius: 14px;
+    cursor: pointer;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 16px rgba(26,82,118,0.25);
+    transition: transform 0.18s, box-shadow 0.18s;
+    border: 4px solid transparent;
+    user-select: none;
+    overflow: hidden;
+  }
+  .door-card:hover:not(.disabled) {
+    transform: translateY(-5px) scale(1.03);
+    box-shadow: 0 8px 24px rgba(26,82,118,0.35);
+  }
+  .door-card.selected {
+    border-color: #f39c12;
+    box-shadow: 0 0 0 3px #f39c12, 0 8px 24px rgba(26,82,118,0.35);
+  }
+  .door-card.revealed {
+    background: linear-gradient(160deg, #7f8c8d, #5d6d7e);
+    cursor: default;
+  }
+  .door-card.disabled {
+    cursor: default;
+  }
+  .door-number {
+    font-size: 2.2rem;
+    font-weight: 900;
+    color: #fff;
+    text-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  }
+  .door-icon {
+    font-size: 2.8rem;
+    margin-top: 8px;
+    opacity: 0;
+    transition: opacity 0.4s;
+  }
+  .door-icon.show { opacity: 1; }
+  .door-label {
+    font-size: 0.78rem;
+    color: rgba(255,255,255,0.85);
+    margin-top: 6px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+  .selected-badge {
+    position: absolute;
+    top: 8px; right: 8px;
+    background: #f39c12;
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 10px;
+    text-transform: uppercase;
+  }
+  .controls {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .btn {
+    padding: 10px 22px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s, opacity 0.15s;
+    letter-spacing: 0.3px;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-primary { background: #2e86c1; color: #fff; }
+  .btn-primary:hover:not(:disabled) { background: #1a5276; }
+  .btn-success { background: #27ae60; color: #fff; }
+  .btn-success:hover:not(:disabled) { background: #1e8449; }
+  .btn-warning { background: #f39c12; color: #fff; }
+  .btn-warning:hover:not(:disabled) { background: #d68910; }
+  .btn-danger { background: #e74c3c; color: #fff; }
+  .btn-danger:hover:not(:disabled) { background: #c0392b; }
+  .btn-outline { background: #fff; color: #1a5276; border: 2px solid #2e86c1; }
+  .btn-outline:hover:not(:disabled) { background: #eaf2f8; }
+
+  .result-banner {
+    text-align: center;
+    padding: 14px 20px;
+    border-radius: 10px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 16px;
+    display: none;
+    animation: popIn 0.4s ease;
+  }
+  .result-banner.win { background: #d5f5e3; color: #1e8449; border: 2px solid #27ae60; display: block; }
+  .result-banner.lose { background: #fdecea; color: #c0392b; border: 2px solid #e74c3c; display: block; }
+
+  @keyframes popIn {
+    0% { transform: scale(0.8); opacity: 0; }
+    70% { transform: scale(1.05); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  .scoreboard {
+    background: #fff;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 2px 10px rgba(26,82,118,0.1);
+    margin-top: 8px;
+  }
+  .scoreboard h3 {
+    color: #1a5276;
+    font-size: 1rem;
+    margin-bottom: 12px;
+    text-align: center;
+  }
+  .score-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .score-card {
+    background: #eaf2f8;
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+  }
+  .score-card .label {
+    font-size: 0.75rem;
+    color: #5d6d7e;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+  .score-card .value {
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: #1a5276;
+  }
+  .score-card .rate {
+    font-size: 0.8rem;
+    color: #2e86c1;
+    font-weight: 600;
+    margin-top: 2px;
+  }
+  .score-card.switch-card { border-top: 3px solid #27ae60; }
+  .score-card.stay-card { border-top: 3px solid #e74c3c; }
+  .score-total { font-size: 0.85rem; color: #5d6d7e; text-align: center; margin-top: 8px; }
+
+  .insight {
+    background: linear-gradient(135deg, #1a5276, #2e86c1);
+    color: #fff;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 0.82rem;
+    text-align: center;
+    margin-top: 12px;
+    line-height: 1.5;
+  }
+  .insight span { font-weight: 700; }
+</style>
+</head>
+<body>
+<h1>🚪 The Monty Hall Problem</h1>
+<div class="instructions">
+  <strong>How to play:</strong> There's a <strong>car</strong> behind one door and <strong>goats</strong> behind the other two.
+  Pick a door → the host reveals a goat → decide to <strong>Switch</strong> or <strong>Stay</strong>.
+  Should you switch? Play enough times to find out!
+</div>
+
+<div class="game-area">
+  <div class="phase-label" id="phaseLabel">Click a door to begin!</div>
+
+  <div class="doors-row" id="doorsRow">
+    <div class="door-card" id="door0" onclick="selectDoor(0)">
+      <div class="door-number">1</div>
+      <div class="door-icon" id="icon0"></div>
+      <div class="door-label" id="dlabel0">Choose me?</div>
+    </div>
+    <div class="door-card" id="door1" onclick="selectDoor(1)">
+      <div class="door-number">2</div>
+      <div class="door-icon" id="icon1"></div>
+      <div class="door-label" id="dlabel1">Choose me?</div>
+    </div>
+    <div class="door-card" id="door2" onclick="selectDoor(2)">
+      <div class="door-number">3</div>
+      <div class="door-icon" id="icon2"></div>
+      <div class="door-label" id="dlabel2">Choose me?</div>
+    </div>
+  </div>
+
+  <div class="controls" id="controls">
+    <button class="btn btn-primary" id="revealBtn" onclick="revealGoat()" disabled>Reveal a Goat</button>
+    <button class="btn btn-success" id="switchBtn" onclick="makeChoice('switch')" disabled>Switch Door</button>
+    <button class="btn btn-warning" id="stayBtn" onclick="makeChoice('stay')" disabled>Stay</button>
+    <button class="btn btn-outline" id="playAgainBtn" onclick="newGame()" style="display:none">Play Again</button>
+    <button class="btn btn-danger" id="resetBtn" onclick="resetStats()">Reset Stats</button>
+  </div>
+
+  <div class="result-banner" id="resultBanner"></div>
+
+  <div class="scoreboard">
+    <h3>Scoreboard</h3>
+    <div class="score-grid">
+      <div class="score-card switch-card">
+        <div class="label">Wins When Switching</div>
+        <div class="value" id="switchWins">0</div>
+        <div class="rate" id="switchRate">—</div>
+      </div>
+      <div class="score-card stay-card">
+        <div class="label">Wins When Staying</div>
+        <div class="value" id="stayWins">0</div>
+        <div class="rate" id="stayRate">—</div>
+      </div>
+    </div>
+    <div class="score-total" id="scoreTotal">Games played: 0 &nbsp;|&nbsp; Switch games: 0 &nbsp;|&nbsp; Stay games: 0</div>
+    <div class="insight" id="insightBox">
+      Play some games to see the pattern emerge! <span>Theory predicts switching wins ~67% of the time.</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  let carDoor, selectedDoor, revealedDoor;
+  let phase = 'choose'; // choose | revealed | done
+  let stats = { switchWins: 0, stayWins: 0, switchGames: 0, stayGames: 0 };
+
+  function newGame() {
+    carDoor = Math.floor(Math.random() * 3);
+    selectedDoor = null;
+    revealedDoor = null;
+    phase = 'choose';
+
+    for (let i = 0; i < 3; i++) {
+      const card = document.getElementById('door' + i);
+      card.className = 'door-card';
+      card.onclick = () => selectDoor(i);
+      document.getElementById('icon' + i).className = 'door-icon';
+      document.getElementById('icon' + i).textContent = '';
+      document.getElementById('dlabel' + i).textContent = 'Choose me?';
+      // Remove badge
+      const badge = card.querySelector('.selected-badge');
+      if (badge) badge.remove();
+    }
+
+    document.getElementById('revealBtn').disabled = true;
+    document.getElementById('switchBtn').disabled = true;
+    document.getElementById('stayBtn').disabled = true;
+    document.getElementById('playAgainBtn').style.display = 'none';
+    document.getElementById('resultBanner').className = 'result-banner';
+    document.getElementById('phaseLabel').textContent = 'Click a door to begin!';
+  }
+
+  function selectDoor(idx) {
+    if (phase !== 'choose') return;
+    selectedDoor = idx;
+    for (let i = 0; i < 3; i++) {
+      const card = document.getElementById('door' + i);
+      const badge = card.querySelector('.selected-badge');
+      if (badge) badge.remove();
+      card.classList.remove('selected');
+    }
+    const card = document.getElementById('door' + idx);
+    card.classList.add('selected');
+    const badge = document.createElement('div');
+    badge.className = 'selected-badge';
+    badge.textContent = 'Your Pick';
+    card.appendChild(badge);
+    document.getElementById('revealBtn').disabled = false;
+    document.getElementById('phaseLabel').textContent = `You chose Door ${idx + 1}. Ready for the host to reveal a goat?`;
+  }
+
+  function revealGoat() {
+    if (phase !== 'choose' || selectedDoor === null) return;
+    phase = 'revealed';
+
+    // Host picks a goat door that's not selected and not the car
+    let options = [0, 1, 2].filter(i => i !== selectedDoor && i !== carDoor);
+    revealedDoor = options[Math.floor(Math.random() * options.length)];
+
+    const card = document.getElementById('door' + revealedDoor);
+    card.classList.add('revealed', 'disabled');
+    card.onclick = null;
+    const icon = document.getElementById('icon' + revealedDoor);
+    icon.textContent = '🐐';
+    icon.classList.add('show');
+    document.getElementById('dlabel' + revealedDoor).textContent = 'Goat!';
+
+    document.getElementById('revealBtn').disabled = true;
+    document.getElementById('switchBtn').disabled = false;
+    document.getElementById('stayBtn').disabled = false;
+
+    const otherDoor = [0,1,2].find(i => i !== selectedDoor && i !== revealedDoor);
+    document.getElementById('phaseLabel').textContent = `Door ${revealedDoor + 1} has a goat! Switch to Door ${otherDoor + 1} or stay with Door ${selectedDoor + 1}?`;
+  }
+
+  function makeChoice(choice) {
+    if (phase !== 'revealed') return;
+    phase = 'done';
+
+    let finalDoor;
+    if (choice === 'switch') {
+      finalDoor = [0,1,2].find(i => i !== selectedDoor && i !== revealedDoor);
+      stats.switchGames++;
+    } else {
+      finalDoor = selectedDoor;
+      stats.stayGames++;
+    }
+
+    // Reveal all doors
+    for (let i = 0; i < 3; i++) {
+      const icon = document.getElementById('icon' + i);
+      icon.classList.add('show');
+      if (i === carDoor) {
+        icon.textContent = '🚗';
+        document.getElementById('dlabel' + i).textContent = 'Car!';
+      } else if (i !== revealedDoor) {
+        icon.textContent = '🐐';
+        document.getElementById('dlabel' + i).textContent = 'Goat';
+      }
+      document.getElementById('door' + i).onclick = null;
+    }
+
+    // Highlight final door
+    const finalCard = document.getElementById('door' + finalDoor);
+    finalCard.classList.remove('selected');
+    if (finalDoor === carDoor) {
+      finalCard.style.background = 'linear-gradient(160deg, #27ae60, #1e8449)';
+    } else {
+      finalCard.style.background = 'linear-gradient(160deg, #e74c3c, #c0392b)';
+    }
+
+    const won = finalDoor === carDoor;
+    if (choice === 'switch') {
+      if (won) stats.switchWins++;
+    } else {
+      if (won) stats.stayWins++;
+    }
+
+    const banner = document.getElementById('resultBanner');
+    if (won) {
+      banner.className = 'result-banner win';
+      banner.innerHTML = `🎉 You won the car! (You chose to <strong>${choice}</strong>)`;
+    } else {
+      banner.className = 'result-banner lose';
+      banner.innerHTML = `🐐 You got a goat. (You chose to <strong>${choice}</strong>) The car was behind Door ${carDoor + 1}.`;
+    }
+
+    document.getElementById('switchBtn').disabled = true;
+    document.getElementById('stayBtn').disabled = true;
+    document.getElementById('playAgainBtn').style.display = 'inline-block';
+    document.getElementById('phaseLabel').textContent = won ? 'Winner! 🏆' : 'Better luck next time...';
+
+    updateScoreboard();
+  }
+
+  function updateScoreboard() {
+    document.getElementById('switchWins').textContent = stats.switchWins;
+    document.getElementById('stayWins').textContent = stats.stayWins;
+    const swr = stats.switchGames > 0 ? Math.round(stats.switchWins / stats.switchGames * 100) : null;
+    const str = stats.stayGames > 0 ? Math.round(stats.stayWins / stats.stayGames * 100) : null;
+    document.getElementById('switchRate').textContent = swr !== null ? `Win rate: ${swr}%` : '—';
+    document.getElementById('stayRate').textContent = str !== null ? `Win rate: ${str}%` : '—';
+    const total = stats.switchGames + stats.stayGames;
+    document.getElementById('scoreTotal').textContent =
+      `Games played: ${total} | Switch games: ${stats.switchGames} | Stay games: ${stats.stayGames}`;
+
+    if (total >= 10) {
+      const swrText = swr !== null ? `${swr}%` : 'N/A';
+      const strText = str !== null ? `${str}%` : 'N/A';
+      document.getElementById('insightBox').innerHTML =
+        `After ${total} games: Switching wins <span>${swrText}</span> vs staying wins <span>${strText}</span>. Theory: switching wins <span>~67%</span>, staying wins <span>~33%</span>. Keep playing to confirm!`;
+    }
+  }
+
+  function resetStats() {
+    stats = { switchWins: 0, stayWins: 0, switchGames: 0, stayGames: 0 };
+    updateScoreboard();
+    document.getElementById('insightBox').innerHTML =
+      'Play some games to see the pattern emerge! <span>Theory predicts switching wins ~67% of the time.</span>';
+    newGame();
+  }
+
+  newGame();
+</script>
+</body>
+</html>

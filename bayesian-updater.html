@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bayesian Updating Visualizer</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #eaf2f8;
+    color: #1a2733;
+    min-height: 100vh;
+    padding: 14px;
+  }
+  h1 { text-align: center; color: #1a5276; font-size: 1.45rem; margin-bottom: 3px; }
+  .subtitle { text-align: center; color: #5d6d7e; font-size: 0.85rem; margin-bottom: 14px; }
+
+  .widget-shell {
+    max-width: 760px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+  }
+
+  .panel {
+    background: #fff;
+    border-radius: 13px;
+    padding: 16px 18px;
+    box-shadow: 0 2px 12px rgba(26,82,118,0.11);
+  }
+  .panel-title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #1a5276;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 13px;
+    border-bottom: 2px solid #eaf2f8;
+    padding-bottom: 7px;
+  }
+
+  /* Preset dropdown */
+  .preset-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .preset-row label { font-size: 0.85rem; font-weight: 600; color: #34495e; white-space: nowrap; }
+  select {
+    flex: 1;
+    min-width: 200px;
+    padding: 8px 12px;
+    border: 2px solid #2e86c1;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    color: #1a2733;
+    background: #fff;
+    cursor: pointer;
+    outline: none;
+  }
+  select:focus { border-color: #1a5276; }
+
+  /* Sliders */
+  .sliders-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .slider-row { display: flex; flex-direction: column; gap: 5px; }
+  .slider-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .slider-label { font-size: 0.85rem; font-weight: 700; color: #1a5276; }
+  .slider-sublabel { font-size: 0.75rem; color: #7f8c8d; }
+  .slider-value {
+    font-size: 1.1rem;
+    font-weight: 900;
+    color: #2e86c1;
+    min-width: 46px;
+    text-align: right;
+  }
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 7px;
+    border-radius: 4px;
+    background: #d5e8f5;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: #2e86c1;
+    border: 3px solid #fff;
+    box-shadow: 0 1px 6px rgba(26,82,118,0.3);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  input[type=range]::-webkit-slider-thumb:hover { background: #1a5276; }
+
+  /* Bars */
+  .bars-section { display: flex; flex-direction: column; gap: 14px; }
+  .bar-row { display: flex; flex-direction: column; gap: 5px; }
+  .bar-row-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #5d6d7e;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .stacked-bar {
+    display: flex;
+    height: 40px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 6px rgba(26,82,118,0.12);
+    position: relative;
+  }
+  .bar-h {
+    background: #1a5276;
+    transition: width 0.45s cubic-bezier(.4,0,.2,1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 700;
+    overflow: hidden;
+    white-space: nowrap;
+    min-width: 0;
+  }
+  .bar-not-h {
+    background: #aed6f1;
+    transition: width 0.45s cubic-bezier(.4,0,.2,1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #1a5276;
+    font-size: 0.78rem;
+    font-weight: 700;
+    overflow: hidden;
+    white-space: nowrap;
+    flex: 1;
+  }
+  .bar-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    color: #7f8c8d;
+    margin-top: 2px;
+  }
+  .bar-labels span { font-weight: 600; }
+  .bar-labels .h-lbl { color: #1a5276; }
+  .bar-labels .nh-lbl { color: #2e86c1; }
+
+  /* Arrow */
+  .update-arrow {
+    text-align: center;
+    font-size: 1.5rem;
+    color: #2e86c1;
+    line-height: 1;
+    position: relative;
+  }
+  .update-arrow::after {
+    content: 'Evidence updates the probability';
+    display: block;
+    font-size: 0.72rem;
+    color: #7f8c8d;
+    font-style: italic;
+    margin-top: 2px;
+  }
+
+  /* Bayes formula */
+  .formula-box {
+    background: #f4f9fd;
+    border: 2px solid #2e86c1;
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-size: 0.83rem;
+    line-height: 1.8;
+  }
+  .formula-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #1a5276;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+  .formula-line {
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    color: #1a2733;
+    background: #eaf2f8;
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-bottom: 6px;
+    letter-spacing: 0.2px;
+  }
+  .formula-line .num { color: #1a5276; font-weight: 700; }
+  .formula-line .op { color: #7f8c8d; }
+  .formula-result {
+    font-size: 1.05rem;
+    font-weight: 900;
+    color: #1a5276;
+    text-align: center;
+    padding: 8px;
+    background: linear-gradient(135deg, #eaf2f8, #d5e8f5);
+    border-radius: 7px;
+    margin-top: 4px;
+  }
+
+  /* Interpretation */
+  .interpretation {
+    background: linear-gradient(135deg, #1a5276, #2e86c1);
+    border-radius: 12px;
+    padding: 16px 18px;
+    color: #fff;
+    font-size: 0.86rem;
+    line-height: 1.65;
+  }
+  .interpretation .int-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: #aed6f1;
+    margin-bottom: 8px;
+  }
+  .interpretation strong { color: #f9e79f; }
+  .interpretation .shift-badge {
+    display: inline-block;
+    background: rgba(255,255,255,0.18);
+    border-radius: 6px;
+    padding: 4px 10px;
+    margin-top: 8px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    letter-spacing: 0.2px;
+  }
+  .shift-up { color: #82e0aa; }
+  .shift-down { color: #f1948a; }
+  .shift-same { color: #f9e79f; }
+</style>
+</head>
+<body>
+<h1>📊 Bayesian Updating Visualizer</h1>
+<p class="subtitle">See how new evidence changes a probability — the heart of Bayes' Theorem.</p>
+
+<div class="widget-shell">
+
+  <!-- Preset selector -->
+  <div class="panel">
+    <div class="panel-title">Quick Scenarios</div>
+    <div class="preset-row">
+      <label>Load a scenario:</label>
+      <select id="presetSelect" onchange="loadPreset()">
+        <option value="custom">— Custom (adjust sliders) —</option>
+        <option value="medical">Medical Test (disease screening)</option>
+        <option value="taxicab">Taxicab Problem (Blue vs Green)</option>
+        <option value="spam">Spam Filter (email classification)</option>
+        <option value="5050">50/50 Prior (unbiased start)</option>
+        <option value="rare">Very Rare Disease (1% prevalence)</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Sliders -->
+  <div class="panel">
+    <div class="panel-title">Adjust Probabilities</div>
+    <div class="sliders-grid">
+      <div class="slider-row">
+        <div class="slider-header">
+          <div>
+            <div class="slider-label" id="priorLabel">P(H) — Prior Probability</div>
+            <div class="slider-sublabel" id="priorSub">How likely is the hypothesis before any evidence?</div>
+          </div>
+          <div class="slider-value" id="priorVal">0.50</div>
+        </div>
+        <input type="range" id="priorSlider" min="1" max="99" value="50"
+          oninput="update()" />
+      </div>
+
+      <div class="slider-row">
+        <div class="slider-header">
+          <div>
+            <div class="slider-label" id="sensLabel">P(E | H) — Sensitivity</div>
+            <div class="slider-sublabel" id="sensSub">If hypothesis is true, how likely is the evidence?</div>
+          </div>
+          <div class="slider-value" id="sensVal">0.80</div>
+        </div>
+        <input type="range" id="sensSlider" min="1" max="99" value="80"
+          oninput="update()" />
+      </div>
+
+      <div class="slider-row">
+        <div class="slider-header">
+          <div>
+            <div class="slider-label" id="fpLabel">P(E | not H) — False Positive Rate</div>
+            <div class="slider-sublabel" id="fpSub">If hypothesis is false, how likely is the evidence anyway?</div>
+          </div>
+          <div class="slider-value" id="fpVal">0.10</div>
+        </div>
+        <input type="range" id="fpSlider" min="1" max="99" value="10"
+          oninput="update()" />
+      </div>
+    </div>
+  </div>
+
+  <!-- Bars -->
+  <div class="panel">
+    <div class="panel-title">Visual Update</div>
+    <div class="bars-section">
+      <div class="bar-row">
+        <div class="bar-row-label">Before Evidence — Prior</div>
+        <div class="stacked-bar">
+          <div class="bar-h" id="priorBarH" style="width:50%">P(H)</div>
+          <div class="bar-not-h" id="priorBarNH">P(¬H)</div>
+        </div>
+        <div class="bar-labels">
+          <span class="h-lbl" id="priorBarLblH">P(H) = 0.50</span>
+          <span class="nh-lbl" id="priorBarLblNH">P(¬H) = 0.50</span>
+        </div>
+      </div>
+
+      <div class="update-arrow">↓</div>
+
+      <div class="bar-row">
+        <div class="bar-row-label">After Evidence — Posterior</div>
+        <div class="stacked-bar">
+          <div class="bar-h" id="postBarH" style="width:50%">P(H|E)</div>
+          <div class="bar-not-h" id="postBarNH">P(¬H|E)</div>
+        </div>
+        <div class="bar-labels">
+          <span class="h-lbl" id="postBarLblH">P(H|E) = 0.50</span>
+          <span class="nh-lbl" id="postBarLblNH">P(¬H|E) = 0.50</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Formula -->
+  <div class="panel">
+    <div class="formula-title">Bayes' Theorem — Step by Step</div>
+    <div class="formula-box">
+      <div class="formula-line" id="formulaLine1"></div>
+      <div class="formula-line" id="formulaLine2"></div>
+      <div class="formula-result" id="formulaResult"></div>
+    </div>
+  </div>
+
+  <!-- Interpretation -->
+  <div class="interpretation" id="interpretBox">
+    <div class="int-title">What This Means</div>
+    <span id="interpretText">Adjust the sliders to see the interpretation update.</span>
+  </div>
+
+</div>
+
+<script>
+  const presets = {
+    medical: {
+      prior: 10, sens: 95, fp: 10,
+      priorLabel: 'P(Disease) — Prior',
+      priorSub: 'How common is the disease in the population? (10%)',
+      sensLabel: 'P(Test+  | Disease) — Sensitivity',
+      sensSub: 'If you have the disease, how often does the test catch it?',
+      fpLabel: 'P(Test+ | No Disease) — False Positive Rate',
+      fpSub: 'If you do NOT have the disease, how often does the test say you do?',
+      scenario: 'Medical Test',
+      H: 'having the disease',
+      E: 'a positive test result'
+    },
+    taxicab: {
+      prior: 15, sens: 80, fp: 20,
+      priorLabel: 'P(Blue Cab) — Prior',
+      priorSub: '15% of cabs in the city are Blue; 85% are Green.',
+      sensLabel: 'P(Witness says Blue | Was Blue) — Reliability',
+      sensSub: 'The witness correctly identifies the cab color 80% of the time.',
+      fpLabel: 'P(Witness says Blue | Was Green) — Error Rate',
+      fpSub: 'The witness incorrectly says Blue when the cab was actually Green.',
+      scenario: 'Taxicab Problem',
+      H: 'the cab being Blue',
+      E: "the witness saying it was Blue"
+    },
+    spam: {
+      prior: 40, sens: 95, fp: 5,
+      priorLabel: 'P(Spam) — Prior',
+      priorSub: '40% of incoming emails are spam.',
+      sensLabel: 'P(Trigger word | Spam)',
+      sensSub: '95% of spam emails contain the trigger word.',
+      fpLabel: 'P(Trigger word | Not Spam)',
+      fpSub: '5% of legitimate emails also contain the trigger word.',
+      scenario: 'Spam Filter',
+      H: 'the email being spam',
+      E: 'the trigger word appearing'
+    },
+    '5050': {
+      prior: 50, sens: 80, fp: 20,
+      priorLabel: 'P(H) — Prior (50/50)',
+      priorSub: 'Starting with a completely neutral, unbiased prior.',
+      sensLabel: 'P(E | H) — Sensitivity',
+      sensSub: 'How likely is the evidence if the hypothesis is true?',
+      fpLabel: 'P(E | ¬H) — False Positive Rate',
+      fpSub: 'How likely is the evidence if the hypothesis is false?',
+      scenario: '50/50 Prior',
+      H: 'the hypothesis',
+      E: 'the evidence'
+    },
+    rare: {
+      prior: 1, sens: 99, fp: 5,
+      priorLabel: 'P(Disease) — Very Rare',
+      priorSub: 'Only 1% of the population has this disease.',
+      sensLabel: 'P(Test+ | Disease) — Sensitivity',
+      sensSub: 'This is an excellent test — catches 99% of true cases.',
+      fpLabel: 'P(Test+ | No Disease) — False Positive Rate',
+      fpSub: '5% false positive rate — seems low, but watch what happens!',
+      scenario: 'Very Rare Disease',
+      H: 'having the rare disease',
+      E: 'a positive test result'
+    }
+  };
+
+  let currentPreset = null;
+
+  function loadPreset() {
+    const key = document.getElementById('presetSelect').value;
+    if (key === 'custom') { currentPreset = null; update(); return; }
+    const p = presets[key];
+    currentPreset = p;
+    document.getElementById('priorSlider').value = p.prior;
+    document.getElementById('sensSlider').value = p.sens;
+    document.getElementById('fpSlider').value = p.fp;
+    document.getElementById('priorLabel').textContent = p.priorLabel;
+    document.getElementById('priorSub').textContent = p.priorSub;
+    document.getElementById('sensLabel').textContent = p.sensLabel;
+    document.getElementById('sensSub').textContent = p.sensSub;
+    document.getElementById('fpLabel').textContent = p.fpLabel;
+    document.getElementById('fpSub').textContent = p.fpSub;
+    update();
+  }
+
+  function pct(v) { return (v * 100).toFixed(1) + '%'; }
+  function dec(v) { return v.toFixed(4); }
+  function dec2(v) { return v.toFixed(2); }
+
+  function update() {
+    const prior = parseInt(document.getElementById('priorSlider').value) / 100;
+    const sens  = parseInt(document.getElementById('sensSlider').value)  / 100;
+    const fp    = parseInt(document.getElementById('fpSlider').value)    / 100;
+
+    document.getElementById('priorVal').textContent = prior.toFixed(2);
+    document.getElementById('sensVal').textContent  = sens.toFixed(2);
+    document.getElementById('fpVal').textContent    = fp.toFixed(2);
+
+    // Bayes calculation
+    const pH    = prior;
+    const pNotH = 1 - prior;
+    const pEH   = sens;
+    const pENH  = fp;
+
+    const pEHjoint   = pH * pEH;        // P(E and H)
+    const pENHjoint  = pNotH * pENH;    // P(E and not H)
+    const pE         = pEHjoint + pENHjoint; // law of total probability
+    const posterior  = pE > 0 ? pEHjoint / pE : 0;
+    const postNotH   = 1 - posterior;
+
+    // Update prior bar
+    const priorPct = (prior * 100).toFixed(1);
+    const priorNPct = ((1 - prior) * 100).toFixed(1);
+    setBar('priorBarH', 'priorBarNH', prior, 'P(H)', 'P(¬H)');
+    document.getElementById('priorBarLblH').textContent  = `P(H) = ${priorPct}%`;
+    document.getElementById('priorBarLblNH').textContent = `P(¬H) = ${priorNPct}%`;
+
+    // Update posterior bar
+    const postPct  = (posterior * 100).toFixed(1);
+    const postNPct = (postNotH * 100).toFixed(1);
+    setBar('postBarH', 'postBarNH', posterior, 'P(H|E)', 'P(¬H|E)');
+    document.getElementById('postBarLblH').textContent  = `P(H|E) = ${postPct}%`;
+    document.getElementById('postBarLblNH').textContent = `P(¬H|E) = ${postNPct}%`;
+
+    // Formula lines
+    const fL1 = `P(H|E) = P(E|H) × P(H)  ÷  P(E)`;
+    const fL2 = `       = ${dec2(pEH)} × ${dec2(pH)}  ÷  [${dec2(pEH)}×${dec2(pH)} + ${dec2(pENH)}×${dec2(pNotH)}]`;
+    const fL3 = `       = ${dec(pEHjoint)}  ÷  ${dec(pE)}`;
+    document.getElementById('formulaLine1').textContent = fL1;
+    document.getElementById('formulaLine2').textContent = fL2;
+    document.getElementById('formulaResult').textContent =
+      `P(H | E) = ${dec(posterior)}  ≈  ${postPct}%`;
+
+    // Interpretation
+    buildInterpretation(prior, posterior, sens, fp, pE);
+  }
+
+  function setBar(hId, nhId, prob, hLabel, nhLabel) {
+    const hEl  = document.getElementById(hId);
+    const nhEl = document.getElementById(nhId);
+    const w = Math.max(2, Math.min(98, prob * 100));
+    hEl.style.width = w + '%';
+    hEl.textContent = w > 10 ? hLabel : '';
+    nhEl.textContent = (100 - w) > 10 ? nhLabel : '';
+  }
+
+  function buildInterpretation(prior, posterior, sens, fp, pE) {
+    const shift = posterior - prior;
+    const p = currentPreset;
+    const H = p ? p.H : 'the hypothesis being true';
+    const E = p ? p.E : 'the evidence';
+    const scenario = p ? p.scenario : 'Custom Scenario';
+
+    let shiftText, shiftClass;
+    const absPct = Math.abs(shift * 100).toFixed(1);
+    if (Math.abs(shift) < 0.005) {
+      shiftText = `The evidence had almost no effect. This happens when sensitivity ≈ false positive rate.`;
+      shiftClass = 'shift-same';
+    } else if (shift > 0) {
+      shiftText = `The probability of ${H} increased by ${absPct} percentage points after ${E}.`;
+      shiftClass = 'shift-up';
+    } else {
+      shiftText = `The probability of ${H} decreased by ${absPct} percentage points after ${E}.`;
+      shiftClass = 'shift-down';
+    }
+
+    let extraNote = '';
+    if (prior <= 0.05 && posterior < 0.5) {
+      extraNote = `<br><br>⚠️ <strong>Base rate fallacy alert!</strong> Even with a very good test (sensitivity = ${(sens*100).toFixed(0)}%), the posterior is only ${(posterior*100).toFixed(1)}% because the prior was so low (${(prior*100).toFixed(1)}%). Most positive results are still false positives!`;
+    } else if (sens === fp) {
+      extraNote = `<br><br>⚠️ When sensitivity equals the false positive rate, the test gives you <strong>zero new information</strong> — the posterior equals the prior!`;
+    }
+
+    document.getElementById('interpretBox').innerHTML = `
+      <div class="int-title">What This Means — ${scenario}</div>
+      <div>
+        <strong>Before seeing evidence:</strong> P(${H}) = ${(prior*100).toFixed(1)}%<br>
+        <strong>After seeing ${E}:</strong> P(${H}|E) = ${(posterior*100).toFixed(1)}%
+      </div>
+      <div class="shift-badge ${shiftClass}">${shiftText}</div>
+      ${extraNote}
+      <br><br>
+      <span style="font-size:0.8rem;color:#aed6f1;">P(Evidence occurs at all) = ${(pE*100).toFixed(1)}% — this is the denominator that normalises everything.</span>
+    `;
+  }
+
+  // Init
+  update();
+</script>
+</body>
+</html>

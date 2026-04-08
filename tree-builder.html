@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Probability Tree Builder</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #eaf2f8;
+    color: #1a2733;
+    min-height: 100vh;
+    padding: 14px;
+  }
+  h1 { text-align: center; color: #1a5276; font-size: 1.4rem; margin-bottom: 6px; }
+  .subtitle { text-align: center; color: #5d6d7e; font-size: 0.85rem; margin-bottom: 14px; }
+
+  .main-grid {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 14px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  @media (max-width: 650px) {
+    .main-grid { grid-template-columns: 1fr; }
+  }
+
+  .panel {
+    background: #fff;
+    border-radius: 12px;
+    padding: 14px;
+    box-shadow: 0 2px 10px rgba(26,82,118,0.1);
+  }
+  .panel h3 {
+    color: #1a5276;
+    font-size: 0.95rem;
+    margin-bottom: 10px;
+    border-bottom: 2px solid #eaf2f8;
+    padding-bottom: 6px;
+  }
+
+  .branch-group { margin-bottom: 14px; }
+  .branch-group label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #34495e;
+    margin-bottom: 4px;
+  }
+  .branch-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+  .branch-name-input {
+    flex: 1;
+    padding: 5px 8px;
+    border: 1px solid #bdc3c7;
+    border-radius: 6px;
+    font-size: 0.82rem;
+  }
+  .prob-input {
+    width: 68px;
+    padding: 5px 8px;
+    border: 1px solid #bdc3c7;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    text-align: center;
+  }
+  .prob-input.valid { border-color: #27ae60; background: #eafaf1; }
+  .prob-input.invalid { border-color: #e74c3c; background: #fdecea; }
+
+  .sum-indicator {
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 12px;
+    margin-top: 4px;
+    display: inline-block;
+  }
+  .sum-ok { background: #d5f5e3; color: #1e8449; }
+  .sum-bad { background: #fdecea; color: #c0392b; }
+
+  .sub-block {
+    border-left: 3px solid #2e86c1;
+    margin-left: 10px;
+    padding-left: 10px;
+    margin-top: 8px;
+  }
+  .sub-label {
+    font-size: 0.75rem;
+    color: #7f8c8d;
+    font-weight: 600;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+
+  .btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 7px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary { background: #2e86c1; color: #fff; }
+  .btn-primary:hover { background: #1a5276; }
+  .btn-outline { background: #fff; color: #1a5276; border: 2px solid #2e86c1; }
+  .btn-outline:hover { background: #eaf2f8; }
+  .btn-sm { padding: 4px 10px; font-size: 0.75rem; }
+
+  .controls-row {
+    display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;
+  }
+
+  /* Tree canvas area */
+  .tree-wrap {
+    position: relative;
+    width: 100%;
+    overflow-x: auto;
+    min-height: 280px;
+  }
+  canvas#treeCanvas {
+    display: block;
+  }
+
+  /* Results table */
+  .results-table-wrap {
+    max-width: 900px;
+    margin: 14px auto 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+    background: #fff;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(26,82,118,0.08);
+  }
+  thead { background: #1a5276; color: #fff; }
+  th { padding: 9px 12px; text-align: left; font-weight: 700; }
+  td { padding: 8px 12px; border-bottom: 1px solid #eaf2f8; }
+  tr:last-child td { border-bottom: none; }
+  tr:nth-child(even) td { background: #f4f9fd; }
+  .path-prob { font-weight: 700; color: #1a5276; }
+  .valid-row td { }
+  .warning-row { background: #fff8e1 !important; }
+</style>
+</head>
+<body>
+<h1>🌳 Probability Tree Builder</h1>
+<p class="subtitle">Build a two-level probability tree — enter labels and probabilities, and watch the tree draw itself.</p>
+
+<div class="main-grid">
+  <!-- Control panel -->
+  <div class="panel" id="controlPanel">
+    <h3>Tree Editor</h3>
+
+    <div class="branch-group">
+      <label>Level 1 — First Event</label>
+      <div id="level1Rows"></div>
+      <div style="display:flex;gap:6px;margin-top:6px;">
+        <span class="sum-indicator" id="sum1Indicator">Sum: —</span>
+      </div>
+    </div>
+
+    <div id="level2Sections"></div>
+
+    <div class="controls-row">
+      <button class="btn btn-outline btn-sm" onclick="loadExample()">Load Example</button>
+      <button class="btn btn-primary btn-sm" onclick="draw()">Redraw Tree</button>
+    </div>
+  </div>
+
+  <!-- Tree canvas -->
+  <div class="panel">
+    <h3>Tree Diagram</h3>
+    <div class="tree-wrap">
+      <canvas id="treeCanvas"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Results table -->
+<div class="results-table-wrap panel" id="resultsPanel" style="margin-top:14px;">
+  <h3>All Paths &amp; Probabilities</h3>
+  <table id="resultsTable">
+    <thead><tr><th>Path</th><th>P(Level 1)</th><th>P(Level 2 | Level 1)</th><th>Joint Probability</th></tr></thead>
+    <tbody id="resultsTbody"></tbody>
+  </table>
+  <p style="font-size:0.78rem;color:#7f8c8d;margin-top:8px;" id="sumCheck"></p>
+</div>
+
+<script>
+  // Data model
+  let tree = {
+    branches: [
+      { name: 'Heads', prob: 0.5, children: [
+        { name: 'Ace', prob: 0.077 },
+        { name: 'Face Card', prob: 0.231 },
+        { name: 'Number', prob: 0.692 }
+      ]},
+      { name: 'Tails', prob: 0.5, children: [
+        { name: 'Ace', prob: 0.077 },
+        { name: 'Face Card', prob: 0.231 },
+        { name: 'Number', prob: 0.692 }
+      ]}
+    ]
+  };
+
+  function loadExample() {
+    tree = {
+      branches: [
+        { name: 'Heads', prob: 0.5, children: [
+          { name: 'Ace', prob: 0.077 },
+          { name: 'Face Card', prob: 0.231 },
+          { name: 'Number', prob: 0.692 }
+        ]},
+        { name: 'Tails', prob: 0.5, children: [
+          { name: 'Ace', prob: 0.077 },
+          { name: 'Face Card', prob: 0.231 },
+          { name: 'Number', prob: 0.692 }
+        ]}
+      ]
+    };
+    buildUI();
+    draw();
+  }
+
+  function buildUI() {
+    const l1 = document.getElementById('level1Rows');
+    l1.innerHTML = '';
+    tree.branches.forEach((b, i) => {
+      const row = document.createElement('div');
+      row.className = 'branch-row';
+      row.innerHTML = `
+        <input class="branch-name-input" value="${b.name}" oninput="tree.branches[${i}].name=this.value;syncL2Label(${i});draw();" />
+        <input class="prob-input" type="number" min="0" max="1" step="0.001" value="${b.prob}"
+          oninput="tree.branches[${i}].prob=parseFloat(this.value)||0;validateSums();draw();" id="p1_${i}" />
+        <button class="btn btn-outline btn-sm" onclick="removeBranch(${i})" title="Remove">✕</button>
+      `;
+      l1.appendChild(row);
+    });
+    if (tree.branches.length < 3) {
+      const addBtn = document.createElement('button');
+      addBtn.className = 'btn btn-outline btn-sm';
+      addBtn.textContent = '+ Add Branch';
+      addBtn.onclick = addBranch;
+      l1.appendChild(addBtn);
+    }
+
+    // Level 2 sections
+    const l2sec = document.getElementById('level2Sections');
+    l2sec.innerHTML = '';
+    tree.branches.forEach((b, i) => {
+      const sec = document.createElement('div');
+      sec.className = 'branch-group';
+      sec.innerHTML = `<label id="l2label_${i}">Level 2 — after "${b.name}"</label>`;
+      const sub = document.createElement('div');
+      sub.className = 'sub-block';
+      b.children.forEach((c, j) => {
+        const row = document.createElement('div');
+        row.className = 'branch-row';
+        row.innerHTML = `
+          <input class="branch-name-input" value="${c.name}" oninput="tree.branches[${i}].children[${j}].name=this.value;draw();" />
+          <input class="prob-input" type="number" min="0" max="1" step="0.001" value="${c.prob}"
+            oninput="tree.branches[${i}].children[${j}].prob=parseFloat(this.value)||0;validateSums();draw();" id="p2_${i}_${j}" />
+          <button class="btn btn-outline btn-sm" onclick="removeChild(${i},${j})" title="Remove">✕</button>
+        `;
+        sub.appendChild(row);
+      });
+      if (b.children.length < 3) {
+        const addBtn = document.createElement('button');
+        addBtn.className = 'btn btn-outline btn-sm';
+        addBtn.style.marginTop = '4px';
+        addBtn.textContent = '+ Add Sub-branch';
+        addBtn.onclick = () => { addChild(i); };
+        sub.appendChild(addBtn);
+      }
+      const sumInd = document.createElement('span');
+      sumInd.className = 'sum-indicator';
+      sumInd.id = `sum2_${i}`;
+      sub.appendChild(sumInd);
+      sec.appendChild(sub);
+      l2sec.appendChild(sec);
+    });
+    validateSums();
+  }
+
+  function syncL2Label(i) {
+    const el = document.getElementById('l2label_' + i);
+    if (el) el.textContent = `Level 2 — after "${tree.branches[i].name}"`;
+  }
+
+  function addBranch() {
+    tree.branches.push({ name: 'Branch ' + (tree.branches.length + 1), prob: 0, children: [
+      { name: 'Option A', prob: 0.5 },
+      { name: 'Option B', prob: 0.5 }
+    ]});
+    buildUI(); draw();
+  }
+
+  function removeBranch(i) {
+    if (tree.branches.length <= 2) return;
+    tree.branches.splice(i, 1);
+    buildUI(); draw();
+  }
+
+  function addChild(i) {
+    tree.branches[i].children.push({ name: 'Option ' + (tree.branches[i].children.length + 1), prob: 0 });
+    buildUI(); draw();
+  }
+
+  function removeChild(i, j) {
+    if (tree.branches[i].children.length <= 2) return;
+    tree.branches[i].children.splice(j, 1);
+    buildUI(); draw();
+  }
+
+  function round2(n) { return Math.round(n * 1000) / 1000; }
+
+  function validateSums() {
+    const sum1 = tree.branches.reduce((a, b) => a + (parseFloat(b.prob) || 0), 0);
+    const s1el = document.getElementById('sum1Indicator');
+    const s1ok = Math.abs(sum1 - 1) < 0.01;
+    s1el.textContent = `Sum: ${round2(sum1)}`;
+    s1el.className = 'sum-indicator ' + (s1ok ? 'sum-ok' : 'sum-bad');
+
+    tree.branches.forEach((b, i) => {
+      const sum2 = b.children.reduce((a, c) => a + (parseFloat(c.prob) || 0), 0);
+      const s2el = document.getElementById('sum2_' + i);
+      if (!s2el) return;
+      const s2ok = Math.abs(sum2 - 1) < 0.01;
+      s2el.textContent = `Sum: ${round2(sum2)}`;
+      s2el.className = 'sum-indicator ' + (s2ok ? 'sum-ok' : 'sum-bad');
+      // color prob inputs
+      b.children.forEach((c, j) => {
+        const inp = document.getElementById(`p2_${i}_${j}`);
+        if (inp) {
+          inp.className = 'prob-input ' + (s2ok ? 'valid' : 'invalid');
+        }
+      });
+    });
+
+    // Color L1 inputs
+    tree.branches.forEach((b, i) => {
+      const inp = document.getElementById(`p1_${i}`);
+      if (inp) inp.className = 'prob-input ' + (s1ok ? 'valid' : 'invalid');
+    });
+  }
+
+  function draw() {
+    const canvas = document.getElementById('treeCanvas');
+    const wrap = canvas.parentElement;
+    const W = Math.max(wrap.clientWidth - 4, 400);
+    const leafCount = tree.branches.reduce((a, b) => a + b.children.length, 0);
+    const rowH = 52;
+    const H = Math.max(leafCount * rowH + 80, 260);
+    canvas.width = W;
+    canvas.height = H;
+
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, W, H);
+
+    const rootX = 36;
+    const rootY = H / 2;
+    const midX = W * 0.36;
+    const leafX = W * 0.82;
+
+    // Compute leaf Y positions
+    let leafPositions = [];
+    tree.branches.forEach((b, i) => {
+      b.children.forEach((c, j) => {
+        leafPositions.push({ bi: i, ci: j });
+      });
+    });
+
+    // Assign Y to each leaf
+    const leafYs = leafPositions.map((_, idx) => {
+      return 40 + idx * (H - 80) / Math.max(leafPositions.length - 1, 1);
+    });
+
+    // Mid points per branch = average of its children's Ys
+    let leafIdx = 0;
+    const midYs = tree.branches.map(b => {
+      const ys = b.children.map((_, j) => leafYs[leafIdx + j]);
+      leafIdx += b.children.length;
+      return ys.reduce((a, v) => a + v, 0) / ys.length;
+    });
+
+    const allValid = checkAllValid();
+
+    // Draw root circle
+    ctx.beginPath();
+    ctx.arc(rootX, rootY, 10, 0, Math.PI * 2);
+    ctx.fillStyle = '#1a5276';
+    ctx.fill();
+
+    leafIdx = 0;
+    tree.branches.forEach((b, i) => {
+      const midY = midYs[i];
+      // Draw branch line root -> mid
+      ctx.beginPath();
+      ctx.moveTo(rootX, rootY);
+      ctx.bezierCurveTo(rootX + 40, rootY, midX - 40, midY, midX, midY);
+      ctx.strokeStyle = '#2e86c1';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+
+      // Probability label on branch
+      const lx = (rootX + midX) / 2;
+      const ly = (rootY + midY) / 2 - 8;
+      ctx.font = '11px Segoe UI, Arial';
+      ctx.fillStyle = '#1a5276';
+      ctx.textAlign = 'center';
+      ctx.fillText(round2(b.prob), lx, ly);
+
+      // Mid node
+      ctx.beginPath();
+      ctx.arc(midX, midY, 8, 0, Math.PI * 2);
+      ctx.fillStyle = '#2e86c1';
+      ctx.fill();
+
+      // Branch label
+      ctx.font = 'bold 12px Segoe UI, Arial';
+      ctx.fillStyle = '#1a5276';
+      ctx.textAlign = 'left';
+      ctx.fillText(b.name, midX + 12, midY + 4);
+
+      // Sub-branches
+      b.children.forEach((c, j) => {
+        const ly2 = leafYs[leafIdx];
+        const sum2 = b.children.reduce((a, x) => a + (parseFloat(x.prob) || 0), 0);
+        const s2ok = Math.abs(sum2 - 1) < 0.01;
+
+        ctx.beginPath();
+        ctx.moveTo(midX, midY);
+        ctx.bezierCurveTo(midX + 30, midY, leafX - 30, ly2, leafX, ly2);
+        ctx.strokeStyle = s2ok ? '#27ae60' : '#e74c3c';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Sub-branch probability label
+        const slx = (midX + leafX) / 2;
+        ctx.font = '10px Segoe UI, Arial';
+        ctx.fillStyle = s2ok ? '#1e8449' : '#c0392b';
+        ctx.textAlign = 'center';
+        ctx.fillText(round2(c.prob), slx, (midY + ly2) / 2 - 6);
+
+        // Leaf node
+        const joint = round2((parseFloat(b.prob) || 0) * (parseFloat(c.prob) || 0));
+        const leafColor = allValid ? '#27ae60' : '#e74c3c';
+        ctx.beginPath();
+        ctx.roundRect(leafX + 4, ly2 - 18, W - leafX - 14, 36, 8);
+        ctx.fillStyle = allValid ? '#d5f5e3' : '#fdecea';
+        ctx.fill();
+        ctx.strokeStyle = leafColor;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        ctx.font = 'bold 11px Segoe UI, Arial';
+        ctx.fillStyle = '#1a2733';
+        ctx.textAlign = 'left';
+        ctx.fillText(c.name, leafX + 10, ly2 - 2);
+        ctx.font = '10px Segoe UI, Arial';
+        ctx.fillStyle = allValid ? '#1e8449' : '#c0392b';
+        ctx.fillText(`P = ${joint}`, leafX + 10, ly2 + 12);
+
+        leafIdx++;
+      });
+    });
+
+    // Root label
+    ctx.font = 'bold 11px Segoe UI, Arial';
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'center';
+    ctx.fillText('S', rootX, rootY + 4);
+
+    updateResultsTable(leafYs);
+  }
+
+  function checkAllValid() {
+    const sum1 = tree.branches.reduce((a, b) => a + (parseFloat(b.prob) || 0), 0);
+    if (Math.abs(sum1 - 1) >= 0.01) return false;
+    return tree.branches.every(b => {
+      const sum2 = b.children.reduce((a, c) => a + (parseFloat(c.prob) || 0), 0);
+      return Math.abs(sum2 - 1) < 0.01;
+    });
+  }
+
+  function updateResultsTable(leafYs) {
+    const tbody = document.getElementById('resultsTbody');
+    tbody.innerHTML = '';
+    let totalProb = 0;
+    tree.branches.forEach(b => {
+      b.children.forEach(c => {
+        const joint = (parseFloat(b.prob) || 0) * (parseFloat(c.prob) || 0);
+        totalProb += joint;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${b.name} → ${c.name}</td>
+          <td>${round2(b.prob)}</td>
+          <td>${round2(c.prob)}</td>
+          <td class="path-prob">${round2(joint)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    });
+    const sc = document.getElementById('sumCheck');
+    const tot = round2(totalProb);
+    const ok = Math.abs(totalProb - 1) < 0.02;
+    sc.textContent = `Sum of all joint probabilities: ${tot} ${ok ? '✓ (should equal 1.0)' : '✗ (should equal 1.0 — check your inputs)'}`;
+    sc.style.color = ok ? '#1e8449' : '#c0392b';
+  }
+
+  // Init
+  buildUI();
+  draw();
+  window.addEventListener('resize', draw);
+</script>
+</body>
+</html>

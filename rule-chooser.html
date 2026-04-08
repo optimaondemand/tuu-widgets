@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Probability Rule Chooser Game</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #eaf2f8;
+    color: #1a2733;
+    min-height: 100vh;
+    padding: 14px;
+  }
+  h1 { text-align: center; color: #1a5276; font-size: 1.4rem; margin-bottom: 4px; }
+  .subtitle { text-align: center; color: #5d6d7e; font-size: 0.85rem; margin-bottom: 14px; }
+
+  .game-shell {
+    max-width: 680px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  /* Score bar */
+  .score-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fff;
+    border-radius: 10px;
+    padding: 10px 16px;
+    box-shadow: 0 2px 8px rgba(26,82,118,0.1);
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .score-display {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+  }
+  .score-chip {
+    text-align: center;
+  }
+  .score-chip .val { font-size: 1.4rem; font-weight: 900; color: #1a5276; line-height: 1; }
+  .score-chip .lbl { font-size: 0.68rem; color: #7f8c8d; text-transform: uppercase; letter-spacing: 0.4px; }
+  .progress-bar-wrap {
+    flex: 1;
+    min-width: 120px;
+    height: 8px;
+    background: #eaf2f8;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #27ae60, #2e86c1);
+    border-radius: 4px;
+    transition: width 0.4s ease;
+  }
+  .q-counter { font-size: 0.8rem; color: #7f8c8d; white-space: nowrap; }
+
+  /* Question card */
+  .question-card {
+    background: #fff;
+    border-radius: 13px;
+    padding: 20px 22px;
+    box-shadow: 0 3px 14px rgba(26,82,118,0.12);
+    border-left: 5px solid #2e86c1;
+    min-height: 110px;
+    position: relative;
+  }
+  .q-tag {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: #2e86c1;
+    margin-bottom: 8px;
+  }
+  .question-text {
+    font-size: 1.0rem;
+    line-height: 1.65;
+    color: #1a2733;
+    font-weight: 500;
+  }
+
+  /* Rule buttons */
+  .rules-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
+  }
+  @media (max-width: 440px) { .rules-grid { grid-template-columns: 1fr; } }
+
+  .rule-btn {
+    padding: 13px 14px;
+    border: 2.5px solid #d5e8f5;
+    border-radius: 10px;
+    background: #fff;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #1a5276;
+    cursor: pointer;
+    text-align: left;
+    transition: border-color 0.15s, background 0.15s, transform 0.1s;
+    line-height: 1.35;
+  }
+  .rule-btn:hover:not(:disabled) {
+    border-color: #2e86c1;
+    background: #eaf2f8;
+    transform: translateY(-2px);
+  }
+  .rule-btn:active:not(:disabled) { transform: scale(0.98); }
+  .rule-btn:disabled { cursor: default; opacity: 0.75; }
+  .rule-btn .rule-name { display: block; font-size: 0.92rem; }
+  .rule-btn .rule-hint { display: block; font-size: 0.72rem; color: #7f8c8d; font-weight: 400; margin-top: 2px; }
+
+  .rule-btn.correct {
+    border-color: #27ae60;
+    background: #d5f5e3;
+    color: #1e8449;
+  }
+  .rule-btn.incorrect {
+    border-color: #e74c3c;
+    background: #fdecea;
+    color: #c0392b;
+  }
+  .rule-btn.reveal-correct {
+    border-color: #27ae60;
+    background: #d5f5e3;
+    color: #1e8449;
+    animation: pulseGreen 0.5s ease;
+  }
+  @keyframes pulseGreen {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.04); }
+    100% { transform: scale(1); }
+  }
+
+  /* Feedback */
+  .feedback-box {
+    border-radius: 11px;
+    padding: 14px 16px;
+    font-size: 0.88rem;
+    line-height: 1.65;
+    display: none;
+    animation: slideIn 0.3s ease;
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .feedback-box.correct-fb {
+    display: block;
+    background: #d5f5e3;
+    border: 2px solid #27ae60;
+    color: #1e8449;
+  }
+  .feedback-box.incorrect-fb {
+    display: block;
+    background: #fdecea;
+    border: 2px solid #e74c3c;
+    color: #a93226;
+  }
+  .feedback-box .fb-icon { font-size: 1.2rem; margin-right: 6px; }
+  .feedback-box .fb-title { font-weight: 700; font-size: 0.95rem; }
+  .feedback-box .fb-explanation { margin-top: 6px; color: #34495e; }
+
+  /* Next / finish */
+  .bottom-row {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+  .btn {
+    padding: 10px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.92rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary { background: #2e86c1; color: #fff; }
+  .btn-primary:hover { background: #1a5276; }
+  .btn-success { background: #27ae60; color: #fff; }
+  .btn-success:hover { background: #1e8449; }
+  .btn-outline { background: #fff; color: #1a5276; border: 2px solid #2e86c1; }
+  .btn-outline:hover { background: #eaf2f8; }
+
+  /* Final screen */
+  .final-screen {
+    display: none;
+    background: #fff;
+    border-radius: 13px;
+    padding: 30px 24px;
+    text-align: center;
+    box-shadow: 0 3px 14px rgba(26,82,118,0.12);
+  }
+  .final-screen.show { display: block; animation: popIn 0.4s ease; }
+  @keyframes popIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  .final-emoji { font-size: 3rem; margin-bottom: 10px; }
+  .final-score { font-size: 2.2rem; font-weight: 900; color: #1a5276; }
+  .final-msg { color: #5d6d7e; font-size: 0.92rem; margin-top: 6px; margin-bottom: 20px; }
+
+  /* Reference strip */
+  .reference-strip {
+    background: linear-gradient(135deg, #1a5276, #2e86c1);
+    border-radius: 10px;
+    padding: 12px 16px;
+    color: #fff;
+    font-size: 0.78rem;
+    line-height: 1.7;
+  }
+  .reference-strip .ref-title {
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #aed6f1;
+    margin-bottom: 6px;
+    font-size: 0.75rem;
+  }
+  .ref-item { display: flex; gap: 8px; }
+  .ref-name { font-weight: 700; color: #f9e79f; min-width: 160px; }
+</style>
+</head>
+<body>
+<h1>🎯 Probability Rule Chooser</h1>
+<p class="subtitle">Read the problem — pick the probability rule that solves it!</p>
+
+<div class="game-shell">
+
+  <!-- Score bar -->
+  <div class="score-bar">
+    <div class="score-display">
+      <div class="score-chip">
+        <div class="val" id="scoreCorrect">0</div>
+        <div class="lbl">Correct</div>
+      </div>
+      <div class="score-chip">
+        <div class="val" id="scoreTotal">0</div>
+        <div class="lbl">Answered</div>
+      </div>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" id="progressFill" style="width:0%"></div>
+    </div>
+    <div class="q-counter" id="qCounter">Question 1 of 10</div>
+    <button class="btn btn-outline" style="padding:6px 14px;font-size:0.8rem;" onclick="restartGame()">Restart</button>
+  </div>
+
+  <!-- Question card -->
+  <div class="question-card" id="questionCard">
+    <div class="q-tag">Problem</div>
+    <div class="question-text" id="questionText">Loading…</div>
+  </div>
+
+  <!-- Rule buttons -->
+  <div class="rules-grid" id="rulesGrid">
+    <button class="rule-btn" id="ruleBtn0" onclick="answer(0)">
+      <span class="rule-name">Addition Rule</span>
+      <span class="rule-hint">P(A or B) — at least one event</span>
+    </button>
+    <button class="rule-btn" id="ruleBtn1" onclick="answer(1)">
+      <span class="rule-name">Multiplication Rule</span>
+      <span class="rule-hint">P(A and B) — both events together</span>
+    </button>
+    <button class="rule-btn" id="ruleBtn2" onclick="answer(2)">
+      <span class="rule-name">Complement Rule</span>
+      <span class="rule-hint">P(not A) = 1 − P(A)</span>
+    </button>
+    <button class="rule-btn" id="ruleBtn3" onclick="answer(3)">
+      <span class="rule-name">Conditional Probability</span>
+      <span class="rule-hint">P(A | B) — given that B happened</span>
+    </button>
+    <button class="rule-btn" id="ruleBtn4" onclick="answer(4)" style="grid-column: 1 / -1;">
+      <span class="rule-name">Bayes' Theorem</span>
+      <span class="rule-hint">Reverse conditioning — update a prior with evidence</span>
+    </button>
+  </div>
+
+  <!-- Feedback -->
+  <div class="feedback-box" id="feedbackBox"></div>
+
+  <!-- Next button -->
+  <div class="bottom-row" id="bottomRow" style="display:none">
+    <button class="btn btn-primary" id="nextBtn" onclick="nextQuestion()">Next Problem →</button>
+  </div>
+
+  <!-- Final screen -->
+  <div class="final-screen" id="finalScreen">
+    <div class="final-emoji" id="finalEmoji">🏆</div>
+    <div class="final-score" id="finalScore"></div>
+    <div class="final-msg" id="finalMsg"></div>
+    <button class="btn btn-success" onclick="restartGame()">Play Again</button>
+  </div>
+
+  <!-- Quick reference -->
+  <div class="reference-strip">
+    <div class="ref-title">Quick Reference — The 5 Rules</div>
+    <div class="ref-item"><span class="ref-name">Addition Rule:</span> P(A or B) = P(A) + P(B) − P(A and B)</div>
+    <div class="ref-item"><span class="ref-name">Multiplication Rule:</span> P(A and B) = P(A) × P(B|A)</div>
+    <div class="ref-item"><span class="ref-name">Complement Rule:</span> P(not A) = 1 − P(A)</div>
+    <div class="ref-item"><span class="ref-name">Conditional Probability:</span> P(A|B) = P(A and B) / P(B)</div>
+    <div class="ref-item"><span class="ref-name">Bayes' Theorem:</span> P(H|E) = P(E|H)·P(H) / P(E)</div>
+  </div>
+
+</div>
+
+<script>
+  // Rule indices: 0=Addition, 1=Multiplication, 2=Complement, 3=Conditional, 4=Bayes
+  const RULES = ['Addition Rule', 'Multiplication Rule', 'Complement Rule', 'Conditional Probability', "Bayes' Theorem"];
+
+  const allProblems = [
+    {
+      q: "A bag has red and blue marbles. You draw one marble. What is the probability it is NOT red?",
+      correct: 2,
+      explanation: "\"Not red\" means the complement of red. Use the <strong>Complement Rule</strong>: P(not red) = 1 − P(red). Whenever a problem asks for the probability of something NOT happening, reach for the complement."
+    },
+    {
+      q: "You flip a fair coin and roll a die. What is the probability of getting Heads AND a 4?",
+      correct: 1,
+      explanation: "You want <em>both</em> events to happen together. Since flipping a coin and rolling a die are <strong>independent</strong>, use the <strong>Multiplication Rule</strong>: P(Heads AND 4) = P(Heads) × P(4) = ½ × ⅙ = 1/12."
+    },
+    {
+      q: "In a class, 40% play soccer, 30% play basketball, and 15% play both. What is the probability a student plays soccer OR basketball?",
+      correct: 0,
+      explanation: "\"Soccer OR basketball\" means at least one of the two. Use the <strong>Addition Rule</strong>: P(S or B) = P(S) + P(B) − P(S and B) = 0.40 + 0.30 − 0.15 = 0.55. We subtract the overlap to avoid counting it twice."
+    },
+    {
+      q: "A medical test is 90% accurate. Only 2% of the population has the disease. Given that a person tests positive, what is the probability they actually have the disease?",
+      correct: 4,
+      explanation: "This is a classic <strong>Bayes' Theorem</strong> problem. We know P(test+ | disease) and need P(disease | test+) — that's reversing the conditional. We must account for the low prior probability (2%) and the false positive rate."
+    },
+    {
+      q: "You draw a card from a standard deck. Given that the card is a face card (J, Q, K), what is the probability it is a King?",
+      correct: 3,
+      explanation: "The phrase \"<em>given that</em>\" is your signal for <strong>Conditional Probability</strong>: P(King | Face Card) = P(King AND Face Card) / P(Face Card) = (4/52) / (12/52) = 4/12 = 1/3."
+    },
+    {
+      q: "What is the probability of rolling at least one 6 in two rolls of a fair die?",
+      correct: 2,
+      explanation: "\"At least one\" is almost always solved with the <strong>Complement Rule</strong>: P(at least one 6) = 1 − P(no 6 on either roll) = 1 − (5/6 × 5/6) = 1 − 25/36 = 11/36. This is faster than adding up all the ways to get a 6."
+    },
+    {
+      q: "A drawer has 3 red socks and 5 blue socks. You pick two socks without replacement. What is the probability both are red?",
+      correct: 1,
+      explanation: "You want <em>both</em> socks to be red. Use the <strong>Multiplication Rule</strong> for dependent events: P(red) × P(red | first was red) = 3/8 × 2/7 = 6/56 = 3/28. The second draw depends on the first because there's no replacement."
+    },
+    {
+      q: "A weather app says there is a 70% chance of rain on Saturday and a 50% chance on Sunday. What is the probability it rains on at least one of the two days? (Assume days are independent.)",
+      correct: 0,
+      explanation: "\"At least one of the two days\" uses the <strong>Addition Rule</strong> (or Complement). P(Sat or Sun) = P(Sat) + P(Sun) − P(Sat and Sun) = 0.70 + 0.50 − (0.70 × 0.50) = 0.85. Alternatively: 1 − P(no rain either day) = 1 − 0.30×0.50 = 0.85."
+    },
+    {
+      q: "A factory produces widgets. 5% are defective. A quality inspector randomly selects a widget. What is the probability the widget is NOT defective?",
+      correct: 2,
+      explanation: "\"Not defective\" is simply the complement of \"defective\". Apply the <strong>Complement Rule</strong>: P(not defective) = 1 − P(defective) = 1 − 0.05 = 0.95, or 95%."
+    },
+    {
+      q: "In a survey, 60% of students like math and 45% like science. Of the students who like math, 50% also like science. What fraction of ALL students like both math AND science?",
+      correct: 1,
+      explanation: "We're given P(science | math) = 0.50 and need P(math AND science). Use the <strong>Multiplication Rule</strong>: P(math AND science) = P(math) × P(science | math) = 0.60 × 0.50 = 0.30."
+    },
+    {
+      q: "After a robbery, a witness says the getaway car was a taxi. Taxis make up 10% of cars in the city. The witness correctly identifies car types 80% of the time. What is the probability the car really was a taxi?",
+      correct: 4,
+      explanation: "This is the <strong>Taxicab Problem</strong> — a perfect Bayes' Theorem scenario. We have: P(taxi) = 0.10 (prior), P(says taxi | is taxi) = 0.80 (likelihood). We need P(is taxi | witness says taxi). Bayes' Theorem reverses the conditional using the prior."
+    },
+    {
+      q: "A jar has 4 green and 6 yellow candies. You pick one at random. Given that it is NOT yellow, what is the probability it is green?",
+      correct: 3,
+      explanation: "\"Given that it is not yellow\" restricts our sample space. This is <strong>Conditional Probability</strong>: P(green | not yellow) = P(green AND not yellow) / P(not yellow). Since all non-yellow candies are green: P = 4/10 ÷ 4/10 = 1. (Or simply: if it's not yellow, it must be green!)"
+    }
+  ];
+
+  let deck = [];
+  let currentIdx = 0;
+  let correctCount = 0;
+  let answered = false;
+  const TOTAL_QUESTIONS = 10;
+
+  function shuffle(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function restartGame() {
+    deck = shuffle(allProblems).slice(0, TOTAL_QUESTIONS);
+    currentIdx = 0;
+    correctCount = 0;
+    answered = false;
+
+    document.getElementById('scoreCorrect').textContent = '0';
+    document.getElementById('scoreTotal').textContent = '0';
+    document.getElementById('progressFill').style.width = '0%';
+    document.getElementById('finalScreen').classList.remove('show');
+    document.getElementById('questionCard').style.display = '';
+    document.getElementById('rulesGrid').style.display = '';
+    document.getElementById('feedbackBox').className = 'feedback-box';
+    document.getElementById('bottomRow').style.display = 'none';
+
+    loadQuestion();
+  }
+
+  function loadQuestion() {
+    if (currentIdx >= TOTAL_QUESTIONS) { showFinal(); return; }
+    const prob = deck[currentIdx];
+    answered = false;
+
+    document.getElementById('qCounter').textContent = `Question ${currentIdx + 1} of ${TOTAL_QUESTIONS}`;
+    document.getElementById('questionText').textContent = prob.q;
+    document.getElementById('feedbackBox').className = 'feedback-box';
+    document.getElementById('bottomRow').style.display = 'none';
+
+    // Reset buttons
+    for (let i = 0; i < 5; i++) {
+      const btn = document.getElementById('ruleBtn' + i);
+      btn.className = 'rule-btn';
+      btn.disabled = false;
+      if (i === 4) btn.style.gridColumn = '1 / -1';
+    }
+  }
+
+  function answer(ruleIdx) {
+    if (answered) return;
+    answered = true;
+
+    const prob = deck[currentIdx];
+    const isCorrect = ruleIdx === prob.correct;
+
+    // Disable all buttons
+    for (let i = 0; i < 5; i++) {
+      document.getElementById('ruleBtn' + i).disabled = true;
+    }
+
+    // Color chosen button
+    document.getElementById('ruleBtn' + ruleIdx).classList.add(isCorrect ? 'correct' : 'incorrect');
+
+    // Always reveal correct answer
+    if (!isCorrect) {
+      document.getElementById('ruleBtn' + prob.correct).classList.add('reveal-correct');
+    }
+
+    // Feedback
+    const fb = document.getElementById('feedbackBox');
+    if (isCorrect) {
+      correctCount++;
+      fb.className = 'feedback-box correct-fb';
+      fb.innerHTML = `<span class="fb-icon">✅</span><span class="fb-title">Correct! That's the ${RULES[prob.correct]}.</span><div class="fb-explanation">${prob.explanation}</div>`;
+    } else {
+      fb.className = 'feedback-box incorrect-fb';
+      fb.innerHTML = `<span class="fb-icon">❌</span><span class="fb-title">Not quite. The answer is the ${RULES[prob.correct]}.</span><div class="fb-explanation">${prob.explanation}</div>`;
+    }
+
+    // Update score
+    currentIdx++;
+    document.getElementById('scoreCorrect').textContent = correctCount;
+    document.getElementById('scoreTotal').textContent = currentIdx;
+    document.getElementById('progressFill').style.width = (currentIdx / TOTAL_QUESTIONS * 100) + '%';
+
+    // Show next or finish
+    const bottomRow = document.getElementById('bottomRow');
+    bottomRow.style.display = 'flex';
+    const nextBtn = document.getElementById('nextBtn');
+    if (currentIdx >= TOTAL_QUESTIONS) {
+      nextBtn.textContent = 'See Results 🏁';
+    } else {
+      nextBtn.textContent = `Next Problem →`;
+    }
+  }
+
+  function nextQuestion() {
+    if (currentIdx >= TOTAL_QUESTIONS) {
+      showFinal();
+    } else {
+      loadQuestion();
+    }
+  }
+
+  function showFinal() {
+    document.getElementById('questionCard').style.display = 'none';
+    document.getElementById('rulesGrid').style.display = 'none';
+    document.getElementById('feedbackBox').className = 'feedback-box';
+    document.getElementById('bottomRow').style.display = 'none';
+
+    const pct = Math.round(correctCount / TOTAL_QUESTIONS * 100);
+    let emoji, msg;
+    if (pct === 100)      { emoji = '🏆'; msg = "Perfect score! You're a probability pro!"; }
+    else if (pct >= 80)   { emoji = '🌟'; msg = "Excellent work! You've got a strong grasp of probability rules."; }
+    else if (pct >= 60)   { emoji = '👍'; msg = "Good job! Review the rules you missed and try again."; }
+    else if (pct >= 40)   { emoji = '📚'; msg = "Keep studying — check the quick reference below and try again!"; }
+    else                  { emoji = '💪'; msg = "Don't give up! Read the reference strip below and give it another go."; }
+
+    document.getElementById('finalEmoji').textContent = emoji;
+    document.getElementById('finalScore').textContent = `${correctCount} / ${TOTAL_QUESTIONS} — ${pct}%`;
+    document.getElementById('finalMsg').textContent = msg;
+    document.getElementById('finalScreen').classList.add('show');
+  }
+
+  // Start
+  restartGame();
+</script>
+</body>
+</html>

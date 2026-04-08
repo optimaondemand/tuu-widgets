@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>St. Petersburg Game</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #eaf2f8; color: #1a1a2e; min-height: 100vh; }
+
+  header {
+    background: linear-gradient(135deg, #1a5276, #2e86c1);
+    color: white; padding: 20px 24px; text-align: center;
+  }
+  header h1 { font-size: 1.5rem; font-weight: 700; }
+  header p  { font-size: 0.9rem; opacity: 0.88; margin-top: 4px; }
+
+  .container { max-width: 760px; margin: 0 auto; padding: 18px 16px 50px; }
+
+  .card {
+    background: white; border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(26,82,118,0.1);
+    padding: 22px; margin-bottom: 18px;
+    animation: fadeUp 0.3s ease;
+  }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:none} }
+  .card h2 { font-size: 1.1rem; color: #1a5276; margin-bottom: 8px; }
+  .card p  { font-size: 0.88rem; line-height: 1.65; color: #444; margin-bottom: 10px; }
+
+  /* Rules display */
+  .rules-row { display: flex; gap: 10px; flex-wrap: wrap; margin: 14px 0; }
+  .rule-chip {
+    flex: 1; min-width: 100px; padding: 12px 10px; text-align: center;
+    border-radius: 10px; border: 1.5px solid #c5d8ea; background: #f5fafd;
+  }
+  .rule-chip .rc-n   { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #666; margin-bottom: 4px; }
+  .rule-chip .rc-val { font-size: 1rem; font-weight: 800; color: #1a5276; }
+  .rule-chip .rc-sub { font-size: 0.75rem; color: #888; margin-top: 2px; }
+
+  /* Coin flip animation */
+  .coin-stage {
+    min-height: 80px; display: flex; flex-wrap: wrap; gap: 8px;
+    align-items: center; justify-content: center;
+    background: #f5fafd; border-radius: 12px; border: 1.5px solid #d0e4f0;
+    padding: 14px; margin: 14px 0; overflow: hidden;
+  }
+  .coin {
+    width: 44px; height: 44px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.85rem; font-weight: 800; color: white;
+    animation: coinPop 0.35s cubic-bezier(.34,1.56,.64,1);
+    flex-shrink: 0;
+  }
+  @keyframes coinPop { from{opacity:0;transform:scale(0.3)} to{opacity:1;transform:scale(1)} }
+  .coin.heads { background: linear-gradient(135deg, #27ae60, #1e8449); }
+  .coin.tails  { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+  .coin.final-tails { background: linear-gradient(135deg, #e74c3c, #c0392b); border: 3px solid #f39c12; }
+
+  .win-display {
+    text-align: center; padding: 14px; border-radius: 12px;
+    background: linear-gradient(135deg, #eaf7ee, #d5f5e3);
+    border: 2px solid #7dcea0; margin: 12px 0;
+    animation: winPop 0.4s ease;
+  }
+  @keyframes winPop { from{opacity:0;transform:scale(0.9)} to{opacity:1;transform:scale(1)} }
+  .win-display .wd-label { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #1e8449; margin-bottom: 4px; }
+  .win-display .wd-amount { font-size: 2rem; font-weight: 900; color: #1a5276; }
+  .win-display .wd-detail { font-size: 0.82rem; color: #555; margin-top: 4px; }
+
+  /* Buttons */
+  .btn {
+    padding: 11px 22px; border-radius: 30px; font-size: 0.95rem;
+    font-weight: 700; cursor: pointer; border: none; transition: all 0.18s;
+  }
+  .btn-primary { background: linear-gradient(135deg, #1a5276, #2e86c1); color: white; }
+  .btn-primary:hover { opacity: 0.88; transform: translateY(-2px); box-shadow: 0 5px 16px rgba(26,82,118,0.3); }
+  .btn-sm { padding: 8px 16px; font-size: 0.85rem; }
+  .btn-ghost { background: transparent; border: 2px solid #2e86c1; color: #2e86c1; }
+  .btn-ghost:hover { background: #eaf2f8; }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+
+  /* Stats */
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 14px 0; }
+  .stat-cell { background: #f5fafd; border: 1.5px solid #d0e4f0; border-radius: 10px; padding: 12px 8px; text-align: center; }
+  .stat-cell .sc-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #666; margin-bottom: 6px; }
+  .stat-cell .sc-val   { font-size: 1.1rem; font-weight: 800; color: #1a5276; word-break: break-all; }
+  .stat-cell .sc-sub   { font-size: 0.72rem; color: #888; margin-top: 2px; }
+
+  /* Entry fee */
+  .fee-row {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    background: #fef9e7; border: 1.5px solid #f9ca57;
+    border-radius: 12px; padding: 14px; margin: 10px 0;
+  }
+  .fee-row label { font-size: 0.88rem; font-weight: 700; color: #7d6608; white-space: nowrap; }
+  .fee-input {
+    width: 90px; padding: 8px 12px; border-radius: 8px;
+    border: 2px solid #f9ca57; font-size: 1rem; font-weight: 700;
+    color: #1a5276; text-align: center; outline: none;
+    background: white;
+  }
+  .fee-result { flex: 1; min-width: 140px; font-size: 0.88rem; color: #5d4e00; font-weight: 600; }
+  .fee-result.ahead  { color: #1e8449; }
+  .fee-result.behind { color: #c0392b; }
+
+  /* EMV panel */
+  .emv-series {
+    background: #1a1a2e; color: #e8f4fc; border-radius: 12px;
+    padding: 18px; font-family: 'Courier New', monospace; font-size: 0.85rem;
+    line-height: 1.9; margin: 12px 0;
+  }
+  .emv-series .hl { color: #f39c12; font-weight: 700; }
+  .emv-series .dim { color: #666; }
+
+  .cap-row { margin: 14px 0; }
+  .cap-row label { display: flex; justify-content: space-between; font-size: 0.88rem; color: #444; margin-bottom: 6px; font-weight: 600; }
+  .cap-row label span { color: #2e86c1; font-weight: 800; }
+  input[type=range] {
+    width: 100%; height: 6px; border-radius: 3px;
+    background: linear-gradient(90deg, #2e86c1 var(--pct,50%), #d0e4f0 var(--pct,50%));
+    outline: none; cursor: pointer; appearance: none; -webkit-appearance: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    appearance: none; -webkit-appearance: none;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: #1a5276; border: 3px solid white;
+    box-shadow: 0 2px 8px rgba(26,82,118,0.35); cursor: pointer;
+  }
+
+  /* Chart */
+  canvas#avgChart { display: block; width: 100%; border-radius: 10px; border: 1.5px solid #c5d8ea; }
+
+  /* Log */
+  .log-wrap { max-height: 150px; overflow-y: auto; margin-top: 10px; border-radius: 8px; border: 1.5px solid #e0eaf2; }
+  .log-item { font-size: 0.8rem; color: #555; padding: 5px 10px; border-bottom: 1px solid #f0f5f9; display: flex; justify-content: space-between; }
+  .log-item:last-child { border-bottom: none; }
+  .log-item .li-win { color: #27ae60; font-weight: 700; }
+
+  /* Insight */
+  .insight-box {
+    background: linear-gradient(135deg, #1a5276, #2e86c1);
+    color: white; border-radius: 14px; padding: 20px; margin-top: 6px;
+  }
+  .insight-box h3 { font-size: 1.1rem; margin-bottom: 8px; }
+  .insight-box p  { font-size: 0.9rem; line-height: 1.7; opacity: 0.93; margin-bottom: 8px; }
+  .insight-box p:last-child { margin-bottom: 0; }
+
+  @media (max-width: 480px) {
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+    .rules-row  { gap: 6px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>The St. Petersburg Game</h1>
+  <p>Expected value = ∞ — but would you really pay a fortune to play?</p>
+</header>
+<div class="container">
+
+  <!-- Rules -->
+  <div class="card">
+    <h2>How the Game Works</h2>
+    <p>
+      Flip a fair coin repeatedly until you get <strong>Tails</strong>. Count how many flips you made.
+      If the first flip is Tails (n=1), you win <strong>$2</strong>. Each extra Heads doubles your prize.
+    </p>
+    <div class="rules-row" id="rules-examples"></div>
+    <p style="margin-top:4px;font-size:0.85rem;color:#888;">Most games end quickly — but occasionally you get a spectacular run of Heads!</p>
+  </div>
+
+  <!-- Play area -->
+  <div class="card">
+    <h2>Play the Game</h2>
+    <div class="coin-stage" id="coin-stage">
+      <span style="color:#aaa;font-size:0.9rem;">Click "Play One Round" to flip coins</span>
+    </div>
+    <div id="win-area"></div>
+    <div class="btn-row" style="margin-top:12px;">
+      <button class="btn btn-primary" onclick="playRounds(1)">Play One Round</button>
+      <button class="btn btn-primary btn-sm" onclick="playRounds(10)">Play 10 Rounds</button>
+      <button class="btn btn-primary btn-sm" onclick="playRounds(100)">Play 100 Rounds</button>
+      <button class="btn btn-ghost  btn-sm" onclick="resetGame()">Reset</button>
+    </div>
+
+    <!-- Entry fee -->
+    <div class="fee-row" style="margin-top:16px;">
+      <label>Entry fee per game: $</label>
+      <input type="number" class="fee-input" id="fee-input" value="10" min="0" max="99999" oninput="updateFeeResult()">
+      <div class="fee-result" id="fee-result">Play some rounds to see results.</div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="card">
+    <h2>Your Statistics</h2>
+    <div class="stats-grid">
+      <div class="stat-cell"><div class="sc-label">Rounds Played</div><div class="sc-val" id="s-rounds">0</div></div>
+      <div class="stat-cell"><div class="sc-label">Total Winnings</div><div class="sc-val" id="s-total">$0</div></div>
+      <div class="stat-cell"><div class="sc-label">Average per Round</div><div class="sc-val" id="s-avg">—</div></div>
+      <div class="stat-cell"><div class="sc-label">Largest Win</div><div class="sc-val" id="s-max">$0</div></div>
+    </div>
+    <div class="log-wrap" id="game-log"></div>
+  </div>
+
+  <!-- Running average chart -->
+  <div class="card">
+    <h2>Running Average Winnings</h2>
+    <p style="margin-bottom:12px;">Notice how the average never settles — it keeps jumping whenever there's a big win. This illustrates why the "infinite EMV" is real but practically meaningless.</p>
+    <canvas id="avgChart" height="220"></canvas>
+  </div>
+
+  <!-- Theoretical EMV -->
+  <div class="card">
+    <h2>Theoretical EMV = ∞</h2>
+    <p>Here's why: each flip-count n has probability (1/2)ⁿ and pays $2ⁿ, so each term contributes exactly $1 to the expected value:</p>
+    <div class="emv-series" id="emv-series"></div>
+
+    <div class="cap-row">
+      <label>Cap the game at N flips: <span id="cap-lbl">10</span></label>
+      <input type="range" id="cap-slider" min="2" max="30" value="10" oninput="updateCapEMV()">
+    </div>
+    <div id="cap-result" style="padding:12px;border-radius:10px;background:#eaf2f8;font-size:0.9rem;color:#333;font-weight:600;"></div>
+  </div>
+
+  <!-- Insight -->
+  <div class="card">
+    <div class="insight-box">
+      <h3>The St. Petersburg Paradox</h3>
+      <p>
+        The expected monetary value of this game is literally <strong>infinite</strong> — yet almost nobody would pay more than $20–30 to play.
+        Why? Because utility is not linear with money. The 1,000th dollar feels less valuable than the 1st.
+      </p>
+      <p>
+        Daniel Bernoulli (1738) proposed that people maximize <strong>expected utility</strong>, not expected money — and that utility grows logarithmically. With U(x) = log(x), the game's expected utility is finite, matching our intuitions about a fair entry fee.
+      </p>
+      <p>
+        This paradox was one of the first arguments for utility theory — the foundation of everything we study in this course.
+      </p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let roundsPlayed = 0;
+let totalWinnings = 0;
+let maxWin = 0;
+const runningAvgs = [];
+const logItems = [];
+
+// ── Rules examples ─────────────────────────────────────────────────────────
+(function buildRules() {
+  const wrap = document.getElementById('rules-examples');
+  [[1,'T','$2'],[2,'HT','$4'],[3,'HHT','$8'],[4,'HHHT','$16'],[10,'HHH…T','$1,024']].forEach(([n,seq,pay]) => {
+    wrap.innerHTML += `
+      <div class="rule-chip">
+        <div class="rc-n">${seq}</div>
+        <div class="rc-val">${pay}</div>
+        <div class="rc-sub">n=${n} flip${n>1?'s':''}</div>
+      </div>`;
+  });
+})();
+
+// ── EMV series ─────────────────────────────────────────────────────────────
+function buildEMVSeries() {
+  const el = document.getElementById('emv-series');
+  let html = '<span class="hl">EMV</span> = ';
+  const terms = [];
+  for (let n = 1; n <= 6; n++) {
+    terms.push(`(½)^${n}·$2^${n}`);
+  }
+  html += terms.join(' + ') + ' + …<br>';
+  html += '     = ';
+  for (let n = 1; n <= 6; n++) {
+    html += `$1 + `;
+  }
+  html += '…<br>';
+  html += '     = <span class="hl">$1 + $1 + $1 + $1 + … = <strong>∞</strong></span>';
+  el.innerHTML = html;
+}
+buildEMVSeries();
+
+function updateCapEMV() {
+  const N = +document.getElementById('cap-slider').value;
+  document.getElementById('cap-lbl').textContent = N;
+  const el = document.getElementById('cap-slider');
+  const pct = ((N - 2) / 28 * 100).toFixed(1);
+  el.style.setProperty('--pct', pct + '%');
+
+  // partial EMV = N (each term = $1, N terms)
+  const partialEMV = N;
+  const maxPay = Math.pow(2, N);
+  document.getElementById('cap-result').innerHTML =
+    `With cap N = <strong>${N}</strong>: &nbsp; EMV = $${partialEMV} &nbsp;|&nbsp; Max possible win = $${maxPay.toLocaleString()} &nbsp;|&nbsp; Most common outcome: win $2 or $4`;
+}
+updateCapEMV();
+
+// ── Play rounds ────────────────────────────────────────────────────────────
+function simulateOneRound() {
+  let flips = [];
+  while (true) {
+    const isHeads = Math.random() < 0.5;
+    flips.push(isHeads ? 'H' : 'T');
+    if (!isHeads) break;
+    if (flips.length > 50) break; // safety cap
+  }
+  const n   = flips.length;
+  const win = Math.pow(2, n);
+  return { flips, n, win };
+}
+
+function playRounds(count) {
+  let lastResult = null;
+  for (let i = 0; i < count; i++) {
+    lastResult = simulateOneRound();
+    roundsPlayed++;
+    totalWinnings += lastResult.win;
+    if (lastResult.win > maxWin) maxWin = lastResult.win;
+    runningAvgs.push(totalWinnings / roundsPlayed);
+
+    // log first few and notable
+    if (count <= 10 || lastResult.n >= 8 || i === count - 1) {
+      const seq = lastResult.flips.join('');
+      logItems.unshift({
+        round: roundsPlayed,
+        seq: seq.length > 14 ? seq.slice(0,12)+'…' : seq,
+        n: lastResult.n,
+        win: lastResult.win
+      });
+    }
+  }
+
+  // show last result coin animation (only for single round)
+  if (count === 1 && lastResult) {
+    animateCoins(lastResult);
+  } else {
+    document.getElementById('coin-stage').innerHTML = `
+      <span style="color:#555;font-size:0.9rem;font-weight:600;">
+        ${count} rounds simulated — last: ${lastResult.flips.join('')} → won $${lastResult.win.toLocaleString()}
+      </span>`;
+    showWin(lastResult);
+  }
+
+  updateStats();
+  updateLog();
+  drawChart();
+  updateFeeResult();
+}
+
+function animateCoins(result) {
+  const stage = document.getElementById('coin-stage');
+  stage.innerHTML = '';
+  result.flips.forEach((f, i) => {
+    setTimeout(() => {
+      const div = document.createElement('div');
+      const isLast = i === result.flips.length - 1;
+      div.className = `coin ${f === 'H' ? 'heads' : isLast ? 'final-tails' : 'tails'}`;
+      div.textContent = f;
+      stage.appendChild(div);
+    }, i * 220);
+  });
+  setTimeout(() => showWin(result), result.flips.length * 220 + 100);
+}
+
+function showWin(result) {
+  const wa = document.getElementById('win-area');
+  wa.innerHTML = `
+    <div class="win-display">
+      <div class="wd-label">You Win!</div>
+      <div class="wd-amount">$${result.win.toLocaleString()}</div>
+      <div class="wd-detail">${result.n} flip${result.n>1?'s':''} — sequence: ${result.flips.join('')}</div>
+    </div>`;
+}
+
+function updateStats() {
+  const avg = roundsPlayed > 0 ? totalWinnings / roundsPlayed : 0;
+  document.getElementById('s-rounds').textContent = roundsPlayed.toLocaleString();
+  document.getElementById('s-total').textContent  = '$' + totalWinnings.toLocaleString();
+  document.getElementById('s-avg').textContent    = roundsPlayed > 0 ? '$' + avg.toFixed(2) : '—';
+  document.getElementById('s-max').textContent    = '$' + maxWin.toLocaleString();
+}
+
+function updateLog() {
+  const log = document.getElementById('game-log');
+  log.innerHTML = logItems.slice(0, 25).map(item =>
+    `<div class="log-item">
+      <span>Round ${item.round}: ${item.seq} (${item.n} flips)</span>
+      <span class="li-win">$${item.win.toLocaleString()}</span>
+    </div>`).join('');
+}
+
+function updateFeeResult() {
+  const fee = +document.getElementById('fee-input').value || 0;
+  const result = document.getElementById('fee-result');
+  if (roundsPlayed === 0) { result.textContent = 'Play some rounds to see results.'; result.className = 'fee-result'; return; }
+  const avg = totalWinnings / roundsPlayed;
+  const profit = avg - fee;
+  if (profit > 0.01) {
+    result.className = 'fee-result ahead';
+    result.innerHTML = `Your avg win ($${avg.toFixed(2)}) > fee ($${fee}) → <strong>AHEAD by $${profit.toFixed(2)}/round</strong>`;
+  } else if (profit < -0.01) {
+    result.className = 'fee-result behind';
+    result.innerHTML = `Your avg win ($${avg.toFixed(2)}) < fee ($${fee}) → <strong>BEHIND by $${Math.abs(profit).toFixed(2)}/round</strong>`;
+  } else {
+    result.className = 'fee-result';
+    result.textContent = `Breaking even at $${avg.toFixed(2)}/round.`;
+  }
+}
+
+// ── Chart ──────────────────────────────────────────────────────────────────
+function drawChart() {
+  const canvas = document.getElementById('avgChart');
+  const dpr = window.devicePixelRatio || 1;
+  const W   = canvas.parentElement.clientWidth;
+  const H   = 220;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  if (runningAvgs.length < 2) {
+    ctx.fillStyle = '#eaf2f8'; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#aaa'; ctx.font = '14px Segoe UI'; ctx.textAlign = 'center';
+    ctx.fillText('Play rounds to see the running average', W/2, H/2);
+    return;
+  }
+
+  const pad = { top: 16, right: 16, bottom: 36, left: 58 };
+  const cW  = W - pad.left - pad.right;
+  const cH  = H - pad.top  - pad.bottom;
+
+  // subsample if too many points
+  let pts = runningAvgs;
+  if (pts.length > 400) {
+    const step = Math.ceil(pts.length / 400);
+    pts = pts.filter((_, i) => i % step === 0 || i === pts.length - 1);
+  }
+
+  const maxVal = Math.max(...pts, 50);
+  const fee    = +document.getElementById('fee-input').value || 0;
+
+  const toX = (i) => pad.left + (i / (pts.length - 1)) * cW;
+  const toY = (v) => pad.top  + (1 - Math.min(v, maxVal) / maxVal) * cH;
+
+  // background
+  ctx.fillStyle = 'white'; ctx.fillRect(0, 0, W, H);
+
+  // grid
+  [0, 0.25, 0.5, 0.75, 1].forEach(t => {
+    const v = t * maxVal;
+    ctx.strokeStyle = '#e8f0f5'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad.left, toY(v)); ctx.lineTo(pad.left + cW, toY(v)); ctx.stroke();
+    ctx.fillStyle = '#888'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'right';
+    ctx.fillText('$' + (v >= 1000 ? (v/1000).toFixed(0)+'k' : v.toFixed(0)), pad.left - 4, toY(v) + 4);
+  });
+
+  // fee line
+  if (fee > 0 && fee <= maxVal) {
+    ctx.strokeStyle = '#f39c12'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.moveTo(pad.left, toY(fee)); ctx.lineTo(pad.left + cW, toY(fee)); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#f39c12'; ctx.font = 'bold 11px Segoe UI'; ctx.textAlign = 'left';
+    ctx.fillText('Fee: $' + fee, pad.left + 4, toY(fee) - 4);
+  }
+
+  // fill
+  ctx.fillStyle = 'rgba(46,134,193,0.08)';
+  ctx.beginPath(); ctx.moveTo(toX(0), toY(0));
+  pts.forEach((v, i) => ctx.lineTo(toX(i), toY(v)));
+  ctx.lineTo(toX(pts.length-1), toY(0)); ctx.closePath(); ctx.fill();
+
+  // line
+  ctx.strokeStyle = '#2e86c1'; ctx.lineWidth = 2.5; ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(toX(0), toY(pts[0]));
+  pts.forEach((v, i) => { if (i > 0) ctx.lineTo(toX(i), toY(v)); });
+  ctx.stroke();
+
+  // axes
+  ctx.strokeStyle = '#b8d0e0'; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(pad.left, pad.top); ctx.lineTo(pad.left, pad.top + cH);
+  ctx.moveTo(pad.left, pad.top + cH); ctx.lineTo(pad.left + cW, pad.top + cH);
+  ctx.stroke();
+
+  // axis labels
+  ctx.save(); ctx.translate(14, pad.top + cH/2); ctx.rotate(-Math.PI/2);
+  ctx.textAlign = 'center'; ctx.fillStyle = '#555'; ctx.font = '12px Segoe UI';
+  ctx.fillText('Avg Winnings ($)', 0, 0); ctx.restore();
+  ctx.textAlign = 'center'; ctx.fillStyle = '#555'; ctx.font = '12px Segoe UI';
+  ctx.fillText('Round #', pad.left + cW/2, H - 4);
+
+  // current avg dot
+  const last = pts[pts.length - 1];
+  ctx.fillStyle = '#1a5276'; ctx.strokeStyle = 'white'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(toX(pts.length-1), toY(last), 6, 0, 2*Math.PI);
+  ctx.fill(); ctx.stroke();
+}
+
+// ── Reset ──────────────────────────────────────────────────────────────────
+function resetGame() {
+  roundsPlayed = 0; totalWinnings = 0; maxWin = 0;
+  runningAvgs.length = 0; logItems.length = 0;
+  document.getElementById('coin-stage').innerHTML = '<span style="color:#aaa;font-size:0.9rem;">Click "Play One Round" to flip coins</span>';
+  document.getElementById('win-area').innerHTML = '';
+  updateStats();
+  updateLog();
+  drawChart();
+  updateFeeResult();
+}
+
+window.addEventListener('resize', drawChart);
+drawChart();
+</script>
+</body>
+</html>

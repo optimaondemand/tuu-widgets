@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rectangle Area EMV Visualizer</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #eaf2f8;
+    color: #1a2a3a;
+    min-height: 100vh;
+    padding: 16px;
+  }
+  h1 { text-align: center; color: #1a5276; font-size: 1.5rem; margin-bottom: 4px; }
+  .subtitle { text-align: center; color: #555; font-size: 0.9rem; margin-bottom: 16px; }
+
+  .top-bar {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    justify-content: center; margin-bottom: 16px;
+  }
+  label { font-size: 0.9rem; font-weight: 600; color: #1a5276; }
+  select, button {
+    font-family: inherit; border-radius: 8px; border: 2px solid #2e86c1;
+    padding: 6px 12px; font-size: 0.88rem; cursor: pointer;
+  }
+  select { background: #fff; color: #1a5276; font-weight: 600; }
+  button { background: #2e86c1; color: #fff; font-weight: 700; border: none; transition: filter 0.15s; }
+  button:hover { filter: brightness(1.1); }
+  button.secondary { background: #1a5276; }
+  button.warn { background: #e74c3c; }
+
+  .main-layout {
+    display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;
+  }
+
+  /* CONTROLS */
+  .controls-panel {
+    background: #fff; border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(26,82,118,0.10);
+    padding: 18px; flex: 1 1 280px; max-width: 340px;
+  }
+  .controls-title { font-size: 0.95rem; font-weight: 700; color: #1a5276; margin-bottom: 12px; }
+  .outcome-block {
+    background: #f4f8fb; border-radius: 10px; padding: 12px; margin-bottom: 10px;
+    border-left: 4px solid #2e86c1;
+  }
+  .outcome-block:nth-child(2) { border-color: #27ae60; }
+  .outcome-block:nth-child(3) { border-color: #e67e22; }
+  .outcome-block:nth-child(4) { border-color: #8e44ad; }
+  .outcome-name {
+    font-weight: 700; font-size: 0.88rem; color: #1a5276; margin-bottom: 8px;
+  }
+  .field-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .field-row label { font-size: 0.78rem; color: #555; min-width: 68px; }
+  input[type=range] { flex: 1; accent-color: #2e86c1; }
+  .val-display { font-size: 0.82rem; font-weight: 700; color: #1a5276; min-width: 38px; text-align: right; }
+  input[type=number] {
+    width: 80px; border: 1.5px solid #b0c4de; border-radius: 6px;
+    padding: 4px 6px; font-size: 0.85rem; font-family: inherit;
+  }
+  .prob-sum-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 6px; padding: 8px 10px; border-radius: 8px;
+    font-size: 0.85rem; font-weight: 600;
+  }
+  .sum-ok { background: #d5f5e3; color: #1e8449; }
+  .sum-warn { background: #fde8e8; color: #c0392b; }
+  .normalize-btn {
+    font-size: 0.78rem; padding: 3px 9px; border-radius: 6px;
+    background: #e74c3c; color: #fff; border: none; cursor: pointer; font-weight: 600;
+  }
+
+  .emv-display {
+    margin-top: 14px; background: #1a5276; color: #fff;
+    border-radius: 12px; padding: 14px; text-align: center;
+  }
+  .emv-label { font-size: 0.85rem; opacity: 0.85; }
+  .emv-value { font-size: 2rem; font-weight: 900; }
+
+  /* VIZ */
+  .viz-panel {
+    background: #fff; border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(26,82,118,0.10);
+    padding: 18px; flex: 2 1 360px;
+  }
+  .viz-title { font-size: 0.95rem; font-weight: 700; color: #1a5276; margin-bottom: 8px; }
+  svg { width: 100%; display: block; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px; font-size: 0.8rem; }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+  .legend-swatch { width: 14px; height: 14px; border-radius: 3px; }
+
+  .insight-box {
+    background: #eaf2f8; border-left: 4px solid #2e86c1; border-radius: 8px;
+    padding: 10px 14px; font-size: 0.85rem; color: #1a5276; margin-top: 12px;
+  }
+</style>
+</head>
+<body>
+<h1>Rectangle Area EMV Visualizer</h1>
+<p class="subtitle">Each rectangle's area = probability × payoff. EMV = total area above baseline minus total area below.</p>
+
+<div class="top-bar">
+  <label for="numOutcomes">Number of outcomes:</label>
+  <select id="numOutcomes" onchange="setOutcomes()">
+    <option value="2" selected>2 outcomes</option>
+    <option value="3">3 outcomes</option>
+    <option value="4">4 outcomes</option>
+  </select>
+  <button class="secondary" onclick="loadExample()">Load Example</button>
+</div>
+
+<div class="main-layout">
+  <div class="controls-panel">
+    <div class="controls-title">Outcome Settings</div>
+    <div id="outcomesContainer"></div>
+    <div class="prob-sum-row sum-ok" id="probSumRow">
+      <span>Probabilities sum: <strong id="probSumVal">1.00</strong></span>
+      <button class="normalize-btn" onclick="normalize()" id="normalizeBtn" style="display:none">Auto-normalize</button>
+    </div>
+    <div class="emv-display">
+      <div class="emv-label">Expected Monetary Value (EMV)</div>
+      <div class="emv-value" id="emvValue">$0.00</div>
+    </div>
+  </div>
+
+  <div class="viz-panel">
+    <div class="viz-title">Rectangle Area Visualization</div>
+    <svg id="vizSvg" viewBox="0 0 500 320" style="border-radius:8px; background:#f8fbfd;"></svg>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-swatch" style="background:#2e86c1"></div>Positive payoff</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#e74c3c"></div>Negative payoff</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#27ae60; opacity:0.3; border:2px dashed #27ae60"></div>EMV area</div>
+    </div>
+    <div class="insight-box" id="insightBox">
+      The <strong>width</strong> of each rectangle is the probability, and the <strong>height</strong> is the absolute payoff. A bigger rectangle means that outcome contributes more to the expected value.
+    </div>
+  </div>
+</div>
+
+<script>
+const COLORS_POS = ['#2e86c1','#27ae60','#e67e22','#8e44ad'];
+const COLORS_NEG = ['#e74c3c','#c0392b','#a93226','#922b21'];
+const NAMES = ['Outcome A','Outcome B','Outcome C','Outcome D'];
+
+let numOut = 2;
+let probs = [0.5, 0.5, 0.33, 0.34];
+let payoffs = [3, -1, 5, -2];
+
+function setOutcomes() {
+  numOut = parseInt(document.getElementById('numOutcomes').value);
+  renderControls();
+  redraw();
+}
+
+function renderControls() {
+  const c = document.getElementById('outcomesContainer');
+  c.innerHTML = '';
+  for (let i = 0; i < numOut; i++) {
+    const col = i < COLORS_POS.length ? COLORS_POS[i] : '#2e86c1';
+    c.innerHTML += `
+    <div class="outcome-block" id="block${i}">
+      <div class="outcome-name" style="color:${col}">${NAMES[i]}</div>
+      <div class="field-row">
+        <label>Probability</label>
+        <input type="range" min="0" max="1" step="0.01" value="${probs[i]}"
+          oninput="updateProb(${i}, this.value)" id="probSlider${i}">
+        <span class="val-display" id="probVal${i}">${probs[i].toFixed(2)}</span>
+      </div>
+      <div class="field-row">
+        <label>Payoff ($)</label>
+        <input type="number" value="${payoffs[i]}" min="-1000" max="1000"
+          oninput="updatePayoff(${i}, this.value)" id="payoffInput${i}" style="border-color:${col}">
+      </div>
+    </div>`;
+  }
+  checkProbSum();
+}
+
+function updateProb(i, v) {
+  probs[i] = parseFloat(v);
+  document.getElementById('probVal'+i).textContent = probs[i].toFixed(2);
+  checkProbSum();
+  redraw();
+}
+function updatePayoff(i, v) {
+  payoffs[i] = parseFloat(v) || 0;
+  redraw();
+}
+
+function checkProbSum() {
+  let s = 0;
+  for (let i = 0; i < numOut; i++) s += probs[i];
+  const row = document.getElementById('probSumRow');
+  document.getElementById('probSumVal').textContent = s.toFixed(2);
+  const ok = Math.abs(s - 1) < 0.02;
+  row.className = 'prob-sum-row ' + (ok ? 'sum-ok' : 'sum-warn');
+  document.getElementById('normalizeBtn').style.display = ok ? 'none' : 'inline-block';
+}
+
+function normalize() {
+  let s = 0;
+  for (let i = 0; i < numOut; i++) s += probs[i];
+  if (s === 0) return;
+  for (let i = 0; i < numOut; i++) {
+    probs[i] = probs[i] / s;
+    document.getElementById('probSlider'+i).value = probs[i];
+    document.getElementById('probVal'+i).textContent = probs[i].toFixed(2);
+  }
+  checkProbSum();
+  redraw();
+}
+
+function loadExample() {
+  document.getElementById('numOutcomes').value = '2';
+  numOut = 2;
+  probs = [0.6, 0.4];
+  payoffs = [5, -3];
+  renderControls();
+  redraw();
+}
+
+function redraw() {
+  // compute EMV
+  let emv = 0;
+  let totalProbUsed = 0;
+  for (let i = 0; i < numOut; i++) {
+    emv += probs[i] * (payoffs[i] || 0);
+    totalProbUsed += probs[i];
+  }
+  document.getElementById('emvValue').textContent = (emv >= 0 ? '$' : '-$') + Math.abs(emv).toFixed(2);
+
+  // SVG dimensions
+  const W = 500, H = 320;
+  const MARGIN = { top: 30, bottom: 30, left: 50, right: 20 };
+  const plotW = W - MARGIN.left - MARGIN.right;
+  const plotH = H - MARGIN.top - MARGIN.bottom;
+  const baseline = MARGIN.top + plotH * 0.55; // baseline line y
+
+  // find max abs payoff for scaling
+  let maxPay = 0;
+  for (let i = 0; i < numOut; i++) maxPay = Math.max(maxPay, Math.abs(payoffs[i] || 0));
+  if (maxPay === 0) maxPay = 1;
+  const scaleH = (plotH * 0.42) / maxPay; // px per dollar
+
+  // lay out rectangles side by side (width proportional to prob, total = plotW)
+  let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="font-family:Segoe UI,sans-serif">`;
+
+  // grid lines
+  svg += `<line x1="${MARGIN.left}" y1="${baseline}" x2="${MARGIN.left+plotW}" y2="${baseline}" stroke="#1a5276" stroke-width="2"/>`;
+  // y axis
+  svg += `<line x1="${MARGIN.left}" y1="${MARGIN.top}" x2="${MARGIN.left}" y2="${MARGIN.top+plotH}" stroke="#ccc" stroke-width="1"/>`;
+
+  // axis labels
+  for (let d of [-maxPay, -maxPay/2, 0, maxPay/2, maxPay]) {
+    const y = baseline - d * scaleH;
+    const label = d >= 0 ? '$'+d.toFixed(0) : '-$'+Math.abs(d).toFixed(0);
+    svg += `<line x1="${MARGIN.left-4}" y1="${y}" x2="${MARGIN.left}" y2="${y}" stroke="#aaa" stroke-width="1"/>`;
+    svg += `<text x="${MARGIN.left-6}" y="${y+4}" font-size="10" fill="#777" text-anchor="end">${label}</text>`;
+  }
+
+  // label above and below
+  svg += `<text x="${MARGIN.left-6}" y="${MARGIN.top+10}" font-size="10" fill="#2e86c1" text-anchor="end">+pay</text>`;
+  svg += `<text x="${MARGIN.left-6}" y="${MARGIN.top+plotH-4}" font-size="10" fill="#e74c3c" text-anchor="end">-pay</text>`;
+
+  // draw rectangles
+  let xCursor = MARGIN.left;
+  const rects = [];
+  for (let i = 0; i < numOut; i++) {
+    const p = Math.max(0, Math.min(1, probs[i] || 0));
+    const pay = payoffs[i] || 0;
+    const rw = p * plotW;
+    const rh = Math.abs(pay) * scaleH;
+    const pos = pay >= 0;
+    const ry = pos ? baseline - rh : baseline;
+    const color = pos ? COLORS_POS[i] || COLORS_POS[0] : COLORS_NEG[i] || COLORS_NEG[0];
+    rects.push({ x: xCursor, y: ry, w: rw, h: rh, color, pay, p, i });
+    xCursor += rw;
+  }
+
+  // draw EMV indicator (dotted outline covering net area conceptually)
+  // just draw each rect with animation-friendly transition
+  for (const r of rects) {
+    if (r.w < 1 || r.h < 1) { continue; }
+    svg += `<rect x="${r.x.toFixed(1)}" y="${r.y.toFixed(1)}" width="${r.w.toFixed(1)}" height="${r.h.toFixed(1)}"
+      fill="${r.color}" opacity="0.82" rx="3"/>`;
+    // label inside if big enough
+    if (r.w > 40 && r.h > 24) {
+      const cx = r.x + r.w / 2;
+      const cy = r.y + r.h / 2;
+      svg += `<text x="${cx.toFixed(1)}" y="${(cy-8).toFixed(1)}" font-size="11" fill="#fff" text-anchor="middle" font-weight="700">${NAMES[r.i]}</text>`;
+      svg += `<text x="${cx.toFixed(1)}" y="${(cy+4).toFixed(1)}" font-size="10" fill="#fff" text-anchor="middle">p=${r.p.toFixed(2)}</text>`;
+      svg += `<text x="${cx.toFixed(1)}" y="${(cy+16).toFixed(1)}" font-size="10" fill="#fff" text-anchor="middle">${r.pay>=0?'$'+r.pay.toFixed(0):'-$'+Math.abs(r.pay).toFixed(0)}</text>`;
+    } else if (r.w > 20) {
+      const cx = r.x + r.w / 2;
+      const cy = r.y + r.h / 2;
+      svg += `<text x="${cx.toFixed(1)}" y="${(cy+4).toFixed(1)}" font-size="9" fill="#fff" text-anchor="middle">${NAMES[r.i]}</text>`;
+    }
+    // area label on top/bottom
+    const area = (r.p * Math.abs(r.pay)).toFixed(2);
+    if (r.pay >= 0) {
+      svg += `<text x="${(r.x+r.w/2).toFixed(1)}" y="${(r.y-5).toFixed(1)}" font-size="10" fill="${r.color}" text-anchor="middle" font-weight="600">A=${area}</text>`;
+    } else {
+      svg += `<text x="${(r.x+r.w/2).toFixed(1)}" y="${(r.y+r.h+13).toFixed(1)}" font-size="10" fill="${r.color}" text-anchor="middle" font-weight="600">A=${area}</text>`;
+    }
+  }
+
+  // EMV line (horizontal dashed)
+  const emvY = baseline - emv * scaleH;
+  if (Math.abs(emv) > 0.01) {
+    svg += `<line x1="${MARGIN.left}" y1="${emvY.toFixed(1)}" x2="${MARGIN.left+plotW}" y2="${emvY.toFixed(1)}"
+      stroke="#27ae60" stroke-width="2" stroke-dasharray="6,4"/>`;
+    svg += `<text x="${MARGIN.left+plotW+4}" y="${(emvY+4).toFixed(1)}" font-size="11" fill="#27ae60" font-weight="700">EMV</text>`;
+  }
+
+  // probability axis labels
+  let xC2 = MARGIN.left;
+  for (let i = 0; i < numOut; i++) {
+    const p = Math.max(0, Math.min(1, probs[i] || 0));
+    const rw = p * plotW;
+    if (rw > 20) {
+      svg += `<text x="${(xC2 + rw/2).toFixed(1)}" y="${(MARGIN.top+plotH+18).toFixed(1)}" font-size="10" fill="#555" text-anchor="middle">${(p*100).toFixed(0)}%</text>`;
+    }
+    xC2 += rw;
+  }
+  svg += `<text x="${(MARGIN.left+plotW/2).toFixed(1)}" y="${(H-2).toFixed(1)}" font-size="10" fill="#888" text-anchor="middle">← Probability (width) →</text>`;
+
+  svg += '</svg>';
+  document.getElementById('vizSvg').outerHTML = svg.replace('<svg ', '<svg id="vizSvg" ');
+
+  // update insight
+  const posArea = rects.filter(r=>r.pay>=0).reduce((s,r)=>s+r.p*r.pay,0);
+  const negArea = rects.filter(r=>r.pay<0).reduce((s,r)=>s+r.p*Math.abs(r.pay),0);
+  document.getElementById('insightBox').innerHTML =
+    `<strong>Positive area:</strong> $${posArea.toFixed(2)} &nbsp;|&nbsp; <strong>Negative area:</strong> $${negArea.toFixed(2)} &nbsp;|&nbsp; <strong>EMV = $${posArea.toFixed(2)} − $${negArea.toFixed(2)} = ${emv>=0?'$':'-$'}${Math.abs(emv).toFixed(2)}</strong>`;
+}
+
+// Init
+loadExample();
+</script>
+</body>
+</html>

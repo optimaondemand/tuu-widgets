@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gamble Method Utility Elicitor</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #eaf2f8;
+    color: #1a1a2e;
+    min-height: 100vh;
+  }
+  header {
+    background: linear-gradient(135deg, #1a5276, #2e86c1);
+    color: white;
+    padding: 18px 24px;
+    text-align: center;
+  }
+  header h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.3px; }
+  header p { font-size: 0.9rem; opacity: 0.88; margin-top: 4px; }
+
+  .container { max-width: 700px; margin: 0 auto; padding: 20px 16px 40px; }
+
+  /* progress bar */
+  .progress-wrap { margin: 20px 0 10px; }
+  .progress-label { font-size: 0.8rem; color: #555; margin-bottom: 6px; display: flex; justify-content: space-between; }
+  .progress-bar { height: 8px; background: #c5d8ea; border-radius: 4px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, #1a5276, #2e86c1); border-radius: 4px; transition: width 0.4s; }
+
+  /* step card */
+  .card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(26,82,118,0.1);
+    padding: 28px;
+    margin-bottom: 20px;
+    animation: fadeUp 0.35s ease;
+  }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
+
+  .phase-label {
+    font-size: 0.75rem; font-weight: 700; letter-spacing: 1.2px;
+    text-transform: uppercase; color: #2e86c1; margin-bottom: 8px;
+  }
+  .card h2 { font-size: 1.25rem; color: #1a5276; margin-bottom: 6px; }
+  .card p  { font-size: 0.95rem; line-height: 1.6; color: #333; margin-bottom: 16px; }
+
+  /* gamble display */
+  .gamble-row {
+    display: flex; align-items: stretch; gap: 14px;
+    margin: 20px 0;
+    flex-wrap: wrap;
+  }
+  .option-box {
+    flex: 1; min-width: 140px;
+    border-radius: 12px; padding: 18px 14px;
+    text-align: center; cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.18s;
+    background: #f0f6fb;
+  }
+  .option-box:hover { transform: translateY(-3px); box-shadow: 0 6px 18px rgba(46,134,193,0.2); border-color: #2e86c1; }
+  .option-box .opt-title { font-size: 0.75rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #2e86c1; margin-bottom: 10px; }
+  .option-box .opt-main { font-size: 1.5rem; font-weight: 800; color: #1a5276; }
+  .option-box .opt-sub  { font-size: 0.85rem; color: #555; margin-top: 4px; }
+  .option-box.sure { background: #eaf7ee; }
+  .option-box.sure:hover { border-color: #27ae60; }
+  .option-box.gamble { background: #fef9e7; }
+  .option-box.gamble:hover { border-color: #f39c12; }
+  .option-box.selected { border-color: #1a5276; background: #d6eaf8; transform: translateY(-3px); box-shadow: 0 6px 18px rgba(26,82,118,0.25); }
+
+  .prob-bar-wrap { margin: 12px 0 4px; }
+  .prob-bar { height: 14px; border-radius: 7px; overflow: hidden; display: flex; }
+  .prob-bar .seg-win { background: #27ae60; }
+  .prob-bar .seg-lose { background: #e74c3c; }
+  .prob-label { display: flex; justify-content: space-between; font-size: 0.75rem; color: #555; margin-top: 3px; }
+
+  .vs-divider {
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 1.1rem; color: #888;
+    padding: 0 4px;
+  }
+
+  .btn {
+    display: inline-block; padding: 12px 28px; border-radius: 30px;
+    font-size: 1rem; font-weight: 700; cursor: pointer;
+    border: none; transition: all 0.18s; text-decoration: none;
+  }
+  .btn-primary { background: linear-gradient(135deg, #1a5276, #2e86c1); color: white; }
+  .btn-primary:hover { opacity: 0.88; transform: translateY(-2px); box-shadow: 0 6px 18px rgba(26,82,118,0.3); }
+  .btn-sm { padding: 8px 18px; font-size: 0.85rem; }
+
+  .round-counter { font-size: 0.85rem; color: #888; text-align: center; margin-bottom: 12px; }
+
+  /* number line */
+  .numline-wrap { margin: 24px 0 8px; }
+  .numline-title { font-size: 0.85rem; font-weight: 700; color: #1a5276; margin-bottom: 10px; }
+  .numline { position: relative; height: 40px; background: #eaf2f8; border-radius: 8px; border: 1.5px solid #c5d8ea; }
+  .numline-track { position: absolute; top: 50%; left: 20px; right: 20px; height: 4px; background: #c5d8ea; transform: translateY(-50%); border-radius: 2px; }
+  .numline-dot {
+    position: absolute; top: 50%; width: 18px; height: 18px; border-radius: 50%;
+    transform: translate(-50%, -50%);
+    border: 2.5px solid white;
+    transition: left 0.5s cubic-bezier(.34,1.56,.64,1);
+    cursor: default;
+  }
+  .numline-dot.fixed { background: #1a5276; }
+  .numline-dot.measured { background: #2e86c1; }
+  .numline-tick-0  { position: absolute; left: 20px;  top: 100%; margin-top: 4px; font-size: 0.7rem; color: #555; transform: translateX(-50%); }
+  .numline-tick-1  { position: absolute; right: 20px; top: 100%; margin-top: 4px; font-size: 0.7rem; color: #555; transform: translateX(50%); }
+
+  /* curve section */
+  .curve-section { margin-top: 10px; }
+  .curve-section h3 { font-size: 1.1rem; color: #1a5276; margin-bottom: 12px; }
+  canvas { display: block; width: 100%; border-radius: 10px; border: 1.5px solid #c5d8ea; background: white; }
+  .curve-label {
+    text-align: center; margin-top: 12px; padding: 10px 18px;
+    border-radius: 10px; font-size: 0.95rem; font-weight: 600;
+  }
+  .label-averse  { background: #eaf7ee; color: #1e8449; border: 1.5px solid #82e0aa; }
+  .label-seeking { background: #fdedec; color: #cb4335; border: 1.5px solid #f1948a; }
+  .label-neutral { background: #eaf2f8; color: #1a5276; border: 1.5px solid #85c1e9; }
+
+  .result-row { display: flex; gap: 10px; flex-wrap: wrap; margin: 16px 0; }
+  .result-chip {
+    flex: 1; min-width: 100px; text-align: center;
+    padding: 12px 8px; border-radius: 10px; background: #eaf2f8;
+    border: 1.5px solid #c5d8ea;
+  }
+  .result-chip .chip-label { font-size: 0.72rem; color: #666; font-weight: 600; letter-spacing: 0.5px; }
+  .result-chip .chip-val   { font-size: 1.3rem; font-weight: 800; color: #1a5276; margin-top: 2px; }
+
+  .reset-wrap { text-align: center; margin-top: 20px; }
+  .btn-ghost { background: transparent; border: 2px solid #2e86c1; color: #2e86c1; }
+  .btn-ghost:hover { background: #eaf2f8; }
+
+  @media (max-width: 480px) {
+    .gamble-row { flex-direction: column; }
+    .vs-divider { padding: 4px 0; }
+    .card { padding: 20px 16px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Gamble Method: Measuring Your Utility</h1>
+  <p>Ramsey's technique — finding your personal utility curve</p>
+</header>
+<div class="container">
+
+  <!-- intro card -->
+  <div class="card" id="intro-card">
+    <div class="phase-label">Introduction</div>
+    <h2>What is utility?</h2>
+    <p>
+      Money doesn't always feel proportional. Going from $0 to $25 might feel <em>huge</em>, but $75 to $100 might feel less exciting.
+      <strong>Utility</strong> captures how much you actually value different outcomes — on a scale from 0 to 1.
+    </p>
+    <p>
+      We'll anchor: <strong>U($0) = 0</strong> and <strong>U($100) = 1</strong>.<br>
+      Then we'll measure <strong>U($25)</strong>, <strong>U($50)</strong>, and <strong>U($75)</strong> using a clever gamble technique.
+    </p>
+    <p style="margin-bottom:0;">
+      For each amount, you'll compare a <strong>sure thing</strong> vs a <strong>risky gamble</strong>.
+      Your answer adjusts the gamble's odds until you're indifferent — that probability <em>is</em> your utility value.
+    </p>
+    <div style="margin-top:20px; text-align:center;">
+      <button class="btn btn-primary" onclick="startElicitation()">Start Measuring &rarr;</button>
+    </div>
+  </div>
+
+  <!-- progress (hidden until started) -->
+  <div id="progress-section" style="display:none;">
+    <div class="progress-wrap">
+      <div class="progress-label">
+        <span id="prog-text">Measuring U($25) — Round 1 of 8</span>
+        <span id="prog-pct">0%</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <!-- question card (hidden until started) -->
+  <div class="card" id="question-card" style="display:none;">
+    <div class="phase-label" id="q-phase">Measuring U($25)</div>
+    <h2>Which would you prefer?</h2>
+    <p id="q-desc">Compare these two options. Click the one you'd rather have.</p>
+    <div class="round-counter" id="round-counter">Round 1 of 8</div>
+    <div class="gamble-row">
+      <div class="option-box sure" id="opt-sure" onclick="chooseOption('sure')">
+        <div class="opt-title">Option A — Sure Thing</div>
+        <div class="opt-main" id="sure-amt">$25</div>
+        <div class="opt-sub">100% guaranteed</div>
+      </div>
+      <div class="vs-divider">VS</div>
+      <div class="option-box gamble" id="opt-gamble" onclick="chooseOption('gamble')">
+        <div class="opt-title">Option B — Gamble</div>
+        <div class="opt-main" id="gamble-p">50%</div>
+        <div class="opt-sub">chance of <strong>$100</strong></div>
+        <div class="prob-bar-wrap">
+          <div class="prob-bar">
+            <div class="seg-win" id="bar-win" style="width:50%"></div>
+            <div class="seg-lose" id="bar-lose" style="width:50%"></div>
+          </div>
+          <div class="prob-label"><span id="bar-win-lbl">50% → $100</span><span id="bar-lose-lbl">50% → $0</span></div>
+        </div>
+        <div class="opt-sub" style="margin-top:4px;">(otherwise <strong>$0</strong>)</div>
+      </div>
+    </div>
+    <!-- numline -->
+    <div class="numline-wrap">
+      <div class="numline-title">Utility number line (0 to 1)</div>
+      <div class="numline">
+        <div class="numline-track"></div>
+        <div class="numline-dot fixed" id="dot-0"   style="left:20px;"  title="U($0)=0"></div>
+        <div class="numline-dot fixed" id="dot-100" style="left:calc(100% - 20px);" title="U($100)=1"></div>
+        <div class="numline-dot measured" id="dot-current" style="left:50%;"></div>
+        <span class="numline-tick-0">U=0</span>
+        <span class="numline-tick-1">U=1</span>
+      </div>
+    </div>
+    <div style="font-size:0.8rem;color:#888;margin-top:28px;">Current gamble probability: <strong id="current-p-display">0.500</strong></div>
+  </div>
+
+  <!-- results card (hidden until done) -->
+  <div class="card" id="results-card" style="display:none;">
+    <div class="phase-label">Results</div>
+    <h2>Your Utility Curve</h2>
+    <p>Here are your measured utility values, based on your choices:</p>
+    <div class="result-row" id="result-chips"></div>
+    <div class="curve-section">
+      <h3>Utility Curve vs. Risk-Neutral Line</h3>
+      <canvas id="curve-canvas" height="280"></canvas>
+      <div class="curve-label" id="curve-label"></div>
+    </div>
+    <div style="margin-top:16px;">
+      <p id="curve-explanation" style="font-size:0.9rem;color:#444;line-height:1.7;"></p>
+    </div>
+    <div class="reset-wrap">
+      <button class="btn btn-ghost btn-sm" onclick="resetAll()">Try Again &larr;</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+const TARGETS = [25, 50, 75];
+const ROUNDS  = 8;
+
+let targetIdx   = 0;   // which amount we're measuring
+let round       = 0;   // current binary-search round
+let lo          = 0.0;
+let hi          = 1.0;
+let p           = 0.5; // current probability
+let measured    = {};  // { 25: u, 50: u, 75: u }
+let lastChoice  = null;
+
+// ── Utility ────────────────────────────────────────────────────────────────
+function startElicitation() {
+  document.getElementById('intro-card').style.display = 'none';
+  document.getElementById('progress-section').style.display = 'block';
+  document.getElementById('question-card').style.display = 'block';
+  targetIdx = 0; round = 0; lo = 0; hi = 1; p = 0.5; measured = {};
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const target = TARGETS[targetIdx];
+  const totalRounds = TARGETS.length * ROUNDS;
+  const doneRounds  = targetIdx * ROUNDS + round;
+  const pct = Math.round((doneRounds / totalRounds) * 100);
+
+  document.getElementById('prog-fill').style.width  = pct + '%';
+  document.getElementById('prog-pct').textContent   = pct + '%';
+  document.getElementById('prog-text').textContent  = `Measuring U($${target}) — Round ${round + 1} of ${ROUNDS}`;
+  document.getElementById('q-phase').textContent    = `Measuring U($${target})`;
+  document.getElementById('round-counter').textContent = `Round ${round + 1} of ${ROUNDS}`;
+
+  document.getElementById('sure-amt').textContent  = `$${target}`;
+  document.getElementById('gamble-p').textContent  = (p * 100).toFixed(1) + '%';
+  document.getElementById('current-p-display').textContent = p.toFixed(3);
+  document.getElementById('bar-win').style.width   = (p * 100) + '%';
+  document.getElementById('bar-lose').style.width  = ((1 - p) * 100) + '%';
+  document.getElementById('bar-win-lbl').textContent  = (p*100).toFixed(1) + '% → $100';
+  document.getElementById('bar-lose-lbl').textContent = ((1-p)*100).toFixed(1) + '% → $0';
+
+  // update numline dot
+  const dotPct = p * 100;
+  const dotLeft = 20 + (dotPct / 100) * (/* full width fraction */ 1) * 100;
+  document.getElementById('dot-current').style.left = `calc(20px + ${p} * (100% - 40px))`;
+
+  // clear selected states
+  document.getElementById('opt-sure').classList.remove('selected');
+  document.getElementById('opt-gamble').classList.remove('selected');
+}
+
+function chooseOption(choice) {
+  lastChoice = choice;
+  document.getElementById('opt-sure').classList.toggle('selected', choice === 'sure');
+  document.getElementById('opt-gamble').classList.toggle('selected', choice === 'gamble');
+
+  setTimeout(() => processChoice(choice), 350);
+}
+
+function processChoice(choice) {
+  // binary search: if prefer sure → U(sure) > p, so p is too low → raise p
+  //                if prefer gamble → p is too high → lower p
+  if (choice === 'sure') {
+    lo = p;
+  } else {
+    hi = p;
+  }
+  p = (lo + hi) / 2;
+  round++;
+
+  if (round >= ROUNDS) {
+    // record measured utility
+    measured[TARGETS[targetIdx]] = +p.toFixed(4);
+    targetIdx++;
+    if (targetIdx >= TARGETS.length) {
+      showResults();
+      return;
+    }
+    round = 0; lo = 0; hi = 1; p = 0.5;
+  }
+  renderQuestion();
+}
+
+function showResults() {
+  document.getElementById('progress-section').style.display = 'none';
+  document.getElementById('question-card').style.display   = 'none';
+  document.getElementById('results-card').style.display    = 'block';
+
+  // chips
+  const pts = {0:0, 25:measured[25], 50:measured[50], 75:measured[75], 100:1};
+  const chips = document.getElementById('result-chips');
+  chips.innerHTML = '';
+  [[0,0],[25,measured[25]],[50,measured[50]],[75,measured[75]],[100,1]].forEach(([amt,u]) => {
+    chips.innerHTML += `
+      <div class="result-chip">
+        <div class="chip-label">U($${amt})</div>
+        <div class="chip-val">${typeof u === 'number' ? u.toFixed(3) : u}</div>
+      </div>`;
+  });
+
+  drawCurve(pts);
+  classifyCurve(pts);
+}
+
+function drawCurve(pts) {
+  const canvas = document.getElementById('curve-canvas');
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.parentElement.clientWidth;
+  const H = 280;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  const pad = { top:20, right:20, bottom:50, left:50 };
+  const cW = W - pad.left - pad.right;
+  const cH = H - pad.top  - pad.bottom;
+
+  const xAmts = [0, 25, 50, 75, 100];
+  const toX = a => pad.left + (a / 100) * cW;
+  const toY = u => pad.top  + (1 - u)  * cH;
+
+  // axes
+  ctx.strokeStyle = '#c5d8ea';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(pad.left, pad.top); ctx.lineTo(pad.left, pad.top + cH);
+  ctx.moveTo(pad.left, pad.top + cH); ctx.lineTo(pad.left + cW, pad.top + cH);
+  ctx.stroke();
+
+  // grid lines
+  [0,0.25,0.5,0.75,1].forEach(u => {
+    ctx.strokeStyle = '#dce8f0'; ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(pad.left, toY(u)); ctx.lineTo(pad.left + cW, toY(u));
+    ctx.stroke();
+    ctx.fillStyle = '#888'; ctx.font = '11px Segoe UI';
+    ctx.textAlign = 'right'; ctx.fillText(u.toFixed(2), pad.left - 5, toY(u) + 4);
+  });
+  xAmts.forEach(a => {
+    ctx.fillStyle = '#888'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'center';
+    ctx.fillText('$' + a, toX(a), H - pad.bottom + 18);
+  });
+
+  // axis labels
+  ctx.save(); ctx.translate(14, pad.top + cH/2); ctx.rotate(-Math.PI/2);
+  ctx.textAlign = 'center'; ctx.fillStyle = '#555'; ctx.font = '12px Segoe UI';
+  ctx.fillText('Utility', 0, 0); ctx.restore();
+  ctx.textAlign = 'center'; ctx.fillStyle = '#555'; ctx.font = '12px Segoe UI';
+  ctx.fillText('Dollar Amount', pad.left + cW/2, H - 4);
+
+  // neutral line
+  ctx.strokeStyle = '#aabccc'; ctx.lineWidth = 1.5; ctx.setLineDash([5,5]);
+  ctx.beginPath();
+  ctx.moveTo(toX(0), toY(0)); ctx.lineTo(toX(100), toY(1));
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // student curve — smooth monotone
+  const points = xAmts.map(a => ({ x: toX(a), y: toY(pts[a]) }));
+  ctx.strokeStyle = '#2e86c1'; ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+  for (let i = 1; i < points.length; i++) {
+    const p0 = points[i-1], p1 = points[i];
+    const cpx = (p0.x + p1.x) / 2;
+    ctx.bezierCurveTo(cpx, p0.y, cpx, p1.y, p1.x, p1.y);
+  }
+  ctx.stroke();
+
+  // fill under curve
+  ctx.fillStyle = 'rgba(46,134,193,0.08)';
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, toY(0));
+  ctx.lineTo(points[0].x, points[0].y);
+  for (let i = 1; i < points.length; i++) {
+    const p0 = points[i-1], p1 = points[i];
+    const cpx = (p0.x + p1.x) / 2;
+    ctx.bezierCurveTo(cpx, p0.y, cpx, p1.y, p1.x, p1.y);
+  }
+  ctx.lineTo(points[points.length-1].x, toY(0));
+  ctx.closePath(); ctx.fill();
+
+  // dots
+  xAmts.forEach(a => {
+    ctx.fillStyle = a === 0 || a === 100 ? '#1a5276' : '#2e86c1';
+    ctx.strokeStyle = 'white'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(toX(a), toY(pts[a]), 7, 0, 2*Math.PI);
+    ctx.fill(); ctx.stroke();
+  });
+
+  // neutral label
+  ctx.setLineDash([5,5]); ctx.strokeStyle = '#aabccc';
+  ctx.fillStyle = '#aabccc'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'left';
+  ctx.fillText('Risk-neutral line', toX(30), toY(0.38));
+  ctx.setLineDash([]);
+}
+
+function classifyCurve(pts) {
+  // compare area under curve vs neutral line
+  const sums = [25,50,75].map(a => pts[a]);
+  const neutral = [0.25, 0.50, 0.75];
+  const diff = sums.reduce((acc, v, i) => acc + (v - neutral[i]), 0);
+  const label = document.getElementById('curve-label');
+  const expl  = document.getElementById('curve-explanation');
+  if (Math.abs(diff) < 0.06) {
+    label.className = 'curve-label label-neutral';
+    label.textContent = 'Your curve is approximately straight — you are roughly risk neutral!';
+    expl.textContent = 'A risk-neutral person values money proportionally. $50 is worth exactly half as much as $100 to them. This is the mathematically "default" assumption — but most real people aren\'t quite like this.';
+  } else if (diff > 0) {
+    label.className = 'curve-label label-averse';
+    label.textContent = 'Your curve is concave (bowed upward) — you are risk averse!';
+    expl.textContent = 'A concave utility curve means early dollars feel more valuable. You would rather have $50 for certain than gamble for an expected $50. This explains why people buy insurance, prefer steady jobs, and avoid lotteries with fair odds.';
+  } else {
+    label.className = 'curve-label label-seeking';
+    label.textContent = 'Your curve is convex (bowed downward) — you are risk seeking!';
+    expl.textContent = 'A convex utility curve means larger payoffs feel proportionally more exciting. You\'re willing to accept an unfair gamble for the chance at the big prize. This pattern can explain lottery ticket purchases and some gambling behavior.';
+  }
+}
+
+function resetAll() {
+  targetIdx = 0; round = 0; lo = 0; hi = 1; p = 0.5; measured = {};
+  document.getElementById('results-card').style.display   = 'none';
+  document.getElementById('intro-card').style.display     = 'block';
+  document.getElementById('progress-section').style.display = 'none';
+  document.getElementById('question-card').style.display  = 'none';
+}
+</script>
+</body>
+</html>
