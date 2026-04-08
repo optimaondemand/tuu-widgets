@@ -321,62 +321,64 @@
   const allProblems = [
     {
       q: "A bag has red and blue marbles. You draw one marble. What is the probability it is NOT red?",
-      correct: 2,
+      correct: 2, alsoAccept: [],
       explanation: "\"Not red\" means the complement of red. Use the <strong>Complement Rule</strong>: P(not red) = 1 − P(red). Whenever a problem asks for the probability of something NOT happening, reach for the complement."
     },
     {
       q: "You flip a fair coin and roll a die. What is the probability of getting Heads AND a 4?",
-      correct: 1,
+      correct: 1, alsoAccept: [],
       explanation: "You want <em>both</em> events to happen together. Since flipping a coin and rolling a die are <strong>independent</strong>, use the <strong>Multiplication Rule</strong>: P(Heads AND 4) = P(Heads) × P(4) = ½ × ⅙ = 1/12."
     },
     {
       q: "In a class, 40% play soccer, 30% play basketball, and 15% play both. What is the probability a student plays soccer OR basketball?",
-      correct: 0,
+      correct: 0, alsoAccept: [],
       explanation: "\"Soccer OR basketball\" means at least one of the two. Use the <strong>Addition Rule</strong>: P(S or B) = P(S) + P(B) − P(S and B) = 0.40 + 0.30 − 0.15 = 0.55. We subtract the overlap to avoid counting it twice."
     },
     {
       q: "A medical test is 90% accurate. Only 2% of the population has the disease. Given that a person tests positive, what is the probability they actually have the disease?",
-      correct: 4,
+      correct: 4, alsoAccept: [],
       explanation: "This is a classic <strong>Bayes' Theorem</strong> problem. We know P(test+ | disease) and need P(disease | test+) — that's reversing the conditional. We must account for the low prior probability (2%) and the false positive rate."
     },
     {
       q: "You draw a card from a standard deck. Given that the card is a face card (J, Q, K), what is the probability it is a King?",
-      correct: 3,
+      correct: 3, alsoAccept: [],
       explanation: "The phrase \"<em>given that</em>\" is your signal for <strong>Conditional Probability</strong>: P(King | Face Card) = P(King AND Face Card) / P(Face Card) = (4/52) / (12/52) = 4/12 = 1/3."
     },
     {
       q: "What is the probability of rolling at least one 6 in two rolls of a fair die?",
-      correct: 2,
-      explanation: "\"At least one\" is almost always solved with the <strong>Complement Rule</strong>: P(at least one 6) = 1 − P(no 6 on either roll) = 1 − (5/6 × 5/6) = 1 − 25/36 = 11/36. This is faster than adding up all the ways to get a 6."
+      correct: 2, alsoAccept: [0],
+      explanation: "The most efficient approach is the <strong>Complement Rule</strong>: P(at least one 6) = 1 − P(no 6 on either roll) = 1 − (5/6 × 5/6) = 1 − 25/36 = 11/36.",
+      alsoExplanation: "The <strong>Addition Rule</strong> (with inclusion-exclusion) also works here: P(6 on roll 1 OR 6 on roll 2) = 1/6 + 1/6 − 1/36 = 11/36. That gives the right answer! But for \"at least one\" problems, the <strong>Complement Rule</strong> is usually faster and scales better — imagine \"at least one 6 in ten rolls.\" The complement approach stays simple (1 minus one product), while the addition approach gets very messy."
     },
     {
       q: "A drawer has 3 red socks and 5 blue socks. You pick two socks without replacement. What is the probability both are red?",
-      correct: 1,
+      correct: 1, alsoAccept: [],
       explanation: "You want <em>both</em> socks to be red. Use the <strong>Multiplication Rule</strong> for dependent events: P(red) × P(red | first was red) = 3/8 × 2/7 = 6/56 = 3/28. The second draw depends on the first because there's no replacement."
     },
     {
       q: "A weather app says there is a 70% chance of rain on Saturday and a 50% chance on Sunday. What is the probability it rains on at least one of the two days? (Assume days are independent.)",
-      correct: 0,
-      explanation: "\"At least one of the two days\" uses the <strong>Addition Rule</strong> (or Complement). P(Sat or Sun) = P(Sat) + P(Sun) − P(Sat and Sun) = 0.70 + 0.50 − (0.70 × 0.50) = 0.85. Alternatively: 1 − P(no rain either day) = 1 − 0.30×0.50 = 0.85."
+      correct: 0, alsoAccept: [2],
+      explanation: "\"At least one of the two days\" can be solved with the <strong>Addition Rule</strong>: P(Sat or Sun) = P(Sat) + P(Sun) − P(Sat and Sun) = 0.70 + 0.50 − 0.35 = 0.85.",
+      alsoExplanation: "The <strong>Complement Rule</strong> also works beautifully here: P(rain at least one day) = 1 − P(no rain either day) = 1 − (0.30 × 0.50) = 1 − 0.15 = 0.85. Both approaches are equally valid for this problem! The complement is often preferred for \"at least one\" when there are many events."
     },
     {
       q: "A factory produces widgets. 5% are defective. A quality inspector randomly selects a widget. What is the probability the widget is NOT defective?",
-      correct: 2,
+      correct: 2, alsoAccept: [],
       explanation: "\"Not defective\" is simply the complement of \"defective\". Apply the <strong>Complement Rule</strong>: P(not defective) = 1 − P(defective) = 1 − 0.05 = 0.95, or 95%."
     },
     {
       q: "In a survey, 60% of students like math and 45% like science. Of the students who like math, 50% also like science. What fraction of ALL students like both math AND science?",
-      correct: 1,
+      correct: 1, alsoAccept: [],
       explanation: "We're given P(science | math) = 0.50 and need P(math AND science). Use the <strong>Multiplication Rule</strong>: P(math AND science) = P(math) × P(science | math) = 0.60 × 0.50 = 0.30."
     },
     {
       q: "After a robbery, a witness says the getaway car was a taxi. Taxis make up 10% of cars in the city. The witness correctly identifies car types 80% of the time. What is the probability the car really was a taxi?",
-      correct: 4,
+      correct: 4, alsoAccept: [],
       explanation: "This is the <strong>Taxicab Problem</strong> — a perfect Bayes' Theorem scenario. We have: P(taxi) = 0.10 (prior), P(says taxi | is taxi) = 0.80 (likelihood). We need P(is taxi | witness says taxi). Bayes' Theorem reverses the conditional using the prior."
     },
     {
       q: "A jar has 4 green and 6 yellow candies. You pick one at random. Given that it is NOT yellow, what is the probability it is green?",
-      correct: 3,
+      correct: 3, alsoAccept: [],
       explanation: "\"Given that it is not yellow\" restricts our sample space. This is <strong>Conditional Probability</strong>: P(green | not yellow) = P(green AND not yellow) / P(not yellow). Since all non-yellow candies are green: P = 4/10 ÷ 4/10 = 1. (Or simply: if it's not yellow, it must be green!)"
     }
   ];
@@ -438,7 +440,9 @@
     answered = true;
 
     const prob = deck[currentIdx];
-    const isCorrect = ruleIdx === prob.correct;
+    const isBest = ruleIdx === prob.correct;
+    const isAlso = !isBest && prob.alsoAccept && prob.alsoAccept.includes(ruleIdx);
+    const isCorrect = isBest || isAlso;
 
     // Disable all buttons
     for (let i = 0; i < 5; i++) {
@@ -448,20 +452,24 @@
     // Color chosen button
     document.getElementById('ruleBtn' + ruleIdx).classList.add(isCorrect ? 'correct' : 'incorrect');
 
-    // Always reveal correct answer
-    if (!isCorrect) {
+    // Always reveal best answer if they didn't pick it
+    if (!isBest) {
       document.getElementById('ruleBtn' + prob.correct).classList.add('reveal-correct');
     }
 
     // Feedback
     const fb = document.getElementById('feedbackBox');
-    if (isCorrect) {
+    if (isBest) {
       correctCount++;
       fb.className = 'feedback-box correct-fb';
-      fb.innerHTML = `<span class="fb-icon">✅</span><span class="fb-title">Correct! That's the ${RULES[prob.correct]}.</span><div class="fb-explanation">${prob.explanation}</div>`;
+      fb.innerHTML = `<span class="fb-icon">\u2705</span><span class="fb-title">Correct! That's the ${RULES[prob.correct]}.</span><div class="fb-explanation">${prob.explanation}</div>`;
+    } else if (isAlso) {
+      correctCount++;
+      fb.className = 'feedback-box correct-fb';
+      fb.innerHTML = `<span class="fb-icon">\u2705</span><span class="fb-title">That works! The ${RULES[ruleIdx]} gives the right answer here.</span><div class="fb-explanation">${prob.alsoExplanation || prob.explanation}</div>`;
     } else {
       fb.className = 'feedback-box incorrect-fb';
-      fb.innerHTML = `<span class="fb-icon">❌</span><span class="fb-title">Not quite. The answer is the ${RULES[prob.correct]}.</span><div class="fb-explanation">${prob.explanation}</div>`;
+      fb.innerHTML = `<span class="fb-icon">\u274C</span><span class="fb-title">Not quite. The best approach is the ${RULES[prob.correct]}.</span><div class="fb-explanation">${prob.explanation}</div>`;
     }
 
     // Update score
