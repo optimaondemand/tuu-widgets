@@ -150,6 +150,15 @@ let payoffs = [3, -1, 5, -2];
 
 function setOutcomes() {
   numOut = parseInt(document.getElementById('numOutcomes').value);
+  // Ensure arrays are long enough — pad with defaults if we're expanding
+  while (probs.length < numOut) probs.push(0.25);
+  while (payoffs.length < numOut) payoffs.push(0);
+  // Auto-normalize so probabilities sum to 1 on expansion
+  let s = 0;
+  for (let i = 0; i < numOut; i++) s += probs[i];
+  if (s > 0) {
+    for (let i = 0; i < numOut; i++) probs[i] = probs[i] / s;
+  }
   renderControls();
   redraw();
 }
