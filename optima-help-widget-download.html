@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Optima Help Widget — Canvas Lesson Code</title>
+<link href="https://fonts.googleapis.com/css2?family=Wix+Madefor+Display:wght@400;500;600;700&family=Wix+Madefor+Text:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  /* ===== PAGE WRAPPER (remove this section when pasting into Canvas) ===== */
+  body {
+    font-family: 'Wix Madefor Display', 'Segoe UI', system-ui, sans-serif;
+    background: #f4f5f7;
+    margin: 0;
+    padding: 40px 20px;
+    color: #0E1C42;
+  }
+  .page-wrapper {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+  .page-header {
+    background: linear-gradient(135deg, #0E1C42, #67308F);
+    border-radius: 14px;
+    padding: 32px;
+    color: #fff;
+    margin-bottom: 24px;
+  }
+  .page-header h1 {
+    margin: 0 0 6px;
+    font-size: 24px;
+    font-weight: 700;
+  }
+  .page-header p {
+    margin: 0;
+    font-size: 14px;
+    opacity: 0.8;
+  }
+  .instructions-box {
+    background: #fff;
+    border: 2px solid #e8e8e8;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+  }
+  .instructions-box h2 {
+    margin: 0 0 8px;
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .instructions-box p, .instructions-box li {
+    font-size: 13px;
+    color: #444;
+    line-height: 1.7;
+  }
+  .instructions-box ol {
+    padding-left: 20px;
+    margin: 8px 0;
+  }
+  .instructions-box code {
+    background: #f0e6f6;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #67308F;
+  }
+  .demo-label {
+    background: #67308F;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    display: inline-block;
+    margin-bottom: 12px;
+  }
+  .simulated-lesson {
+    background: #fff;
+    border: 1px solid #eee;
+    border-radius: 12px;
+    padding: 24px 28px;
+    margin-bottom: 20px;
+  }
+  .simulated-lesson h3 {
+    margin: 0 0 8px;
+    font-size: 18px;
+  }
+  .simulated-lesson p {
+    font-size: 14px;
+    color: #444;
+    line-height: 1.7;
+  }
+  .copy-code-section {
+    background: #0E1C42;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-top: 32px;
+  }
+  .copy-code-section h2 {
+    margin: 0 0 8px;
+    font-size: 14px;
+    color: #55C8E8;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .copy-code-section p {
+    font-size: 12px;
+    color: rgba(255,255,255,0.7);
+    line-height: 1.7;
+    margin: 0 0 6px;
+  }
+  .copy-code-section p span {
+    color: #55C8E8;
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+<div class="page-wrapper">
+
+  <!-- PAGE HEADER -->
+  <div class="page-header">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+      <div style="width:36px;height:36px;background:rgba(85,200,232,0.2);border:2px solid #55C8E8;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;">🦉</div>
+      <span style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#55C8E8;">OPTIMA ACADEMY ONLINE</span>
+    </div>
+    <h1>In-Lesson Help Widget</h1>
+    <p>Downloadable reference file with live preview and implementation instructions.</p>
+  </div>
+
+  <!-- INSTRUCTIONS -->
+  <div class="instructions-box">
+    <h2>How to Use This File</h2>
+    <p>This page contains a working preview of the Help Widget. To add it to a Canvas lesson:</p>
+    <ol>
+      <li>Copy everything between the <code>&lt;!-- CANVAS CODE START --&gt;</code> and <code>&lt;!-- CANVAS CODE END --&gt;</code> comments below.</li>
+      <li>In Canvas, edit your lesson page and switch to the <strong>HTML editor</strong>.</li>
+      <li>Paste the code at the bottom of your lesson content.</li>
+      <li>Update the four <code>data-</code> attributes on the main <code>div</code> to match the specific lesson.</li>
+      <li>Update <code>INBOX_URL</code> and <code>DISCUSSION_URL</code> inside the script.</li>
+      <li>To change the accent color for a different subject, find-and-replace <code>#67308F</code> and <code>#f0e6f6</code>.</li>
+    </ol>
+    <p style="margin-bottom:0;"><strong>Subject accent colors:</strong> Math <code>#67308F</code> · Science <code>#76C043</code> · ELA <code>#0E5568</code> · Social Studies <code>#C7922C</code> · Languages <code>#A53E97</code> · PE <code>#F78F1E</code> · Electives <code>#55C8E8</code> · Esports <code>#0E1C42</code></p>
+  </div>
+
+  <!-- SIMULATED LESSON CONTENT -->
+  <span class="demo-label">Live Preview</span>
+  <div class="simulated-lesson">
+    <p style="margin:0 0 4px;font-size:11px;font-weight:600;color:#67308F;text-transform:uppercase;letter-spacing:2px;">Module 3: Reasoning & Application</p>
+    <h3>Lesson 3.2: Thinking Aloud</h3>
+    <p>This is where your lesson content would appear — text, images, embedded videos, and interactive elements. Imagine a student is working through this material and gets stuck on something below.</p>
+    <div style="background:#f9f9f9;border:2px solid #e8e8e8;border-radius:8px;padding:14px 18px;margin-top:12px;">
+      <p style="margin:0 0 4px;font-weight:600;font-size:13px;color:#67308F;">💡 Key Concept</p>
+      <p style="margin:0;font-size:14px;color:#333;">Imagine a complex concept here that a student might need help with — this is where they would use the widget below.</p>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- CANVAS CODE START — Copy everything from here to CANVAS CODE END -->
+  <!-- ============================================================ -->
+
+  <!-- ===== CONFIG: Update these for each lesson ===== -->
+  <div id="optima-help-widget"
+       data-course="Algebra II"
+       data-module="Module 3: Reasoning &amp; Application"
+       data-lesson="Lesson 3.2: Thinking Aloud"
+       data-teacher="Mrs. Johnson">
+  </div>
+
+  <style>
+    #optima-help-widget {
+      font-family: 'Wix Madefor Display', 'Segoe UI', system-ui, sans-serif;
+      margin: 24px 0;
+      color: #0E1C42;
+    }
+    #optima-help-widget * { box-sizing: border-box; }
+    .ohw-trigger {
+      width: 100%; padding: 14px 24px; border-radius: 12px;
+      border: 2px solid rgba(103,48,143,0.3); background: #f0e6f6;
+      display: flex; align-items: center; gap: 12px;
+      cursor: pointer; text-align: left; transition: border-color 0.2s;
+    }
+    .ohw-trigger:hover { border-color: #67308F; }
+    .ohw-trigger-icon {
+      width: 40px; height: 40px; border-radius: 50%; background: #67308F;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; flex-shrink: 0;
+    }
+    .ohw-trigger-title { margin: 0; font-size: 15px; font-weight: 700; color: #67308F; }
+    .ohw-trigger-sub { margin: 0; font-size: 12px; color: #666; }
+    .ohw-trigger-arrow { margin-left: auto; font-size: 20px; color: #67308F; }
+    .ohw-panel { border: 2px solid rgba(103,48,143,0.4); border-radius: 12px; overflow: hidden; }
+    .ohw-panel-header {
+      background: #67308F; padding: 14px 20px; color: #fff;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .ohw-panel-header-left { display: flex; align-items: center; gap: 10px; }
+    .ohw-panel-title { margin: 0; font-size: 14px; font-weight: 700; }
+    .ohw-panel-subtitle { margin: 0; font-size: 11px; opacity: 0.8; }
+    .ohw-close-btn {
+      background: rgba(255,255,255,0.15); border: none; color: #fff;
+      width: 28px; height: 28px; border-radius: 50%; cursor: pointer;
+      font-size: 14px; font-weight: 700;
+    }
+    .ohw-panel-body { padding: 20px 24px; background: #fff; }
+    .ohw-context {
+      background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px;
+      padding: 10px 14px; margin-bottom: 16px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .ohw-context-label { margin:0; font-size:11px; font-weight:600; color:#0369a1; text-transform:uppercase; letter-spacing:1px; }
+    .ohw-context-detail { margin:0; font-size:12px; color:#444; }
+    .ohw-context-badge { margin-left:auto; font-size:10px; font-weight:700; color:#16a34a; background:#f0fdf4; padding:2px 8px; border-radius:4px; }
+    .ohw-categories { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px; }
+    .ohw-cat-btn {
+      padding:12px 14px; border-radius:8px; border:2px solid #e8e8e8;
+      background:#fff; cursor:pointer; display:flex; align-items:center;
+      gap:8px; text-align:left; transition:all 0.2s;
+    }
+    .ohw-cat-btn.active { border-color:#67308F; background:#f0e6f6; }
+    .ohw-cat-emoji { font-size:20px; }
+    .ohw-cat-label { font-size:12px; font-weight:600; color:#555; }
+    .ohw-cat-btn.active .ohw-cat-label { color:#67308F; }
+    .ohw-question-area { display:none; }
+    .ohw-question-area.visible { display:block; }
+    .ohw-prompt-label { margin:0 0 6px; font-size:13px; font-weight:600; color:#333; }
+    .ohw-textarea {
+      width:100%; padding:12px 14px; border-radius:8px; border:2px solid #e8e8e8;
+      font-size:13px; font-family:'Wix Madefor Text','Segoe UI',system-ui,sans-serif;
+      resize:vertical; min-height:80px; margin-bottom:12px;
+    }
+    .ohw-nudge { border-radius:8px; padding:8px 14px; margin-bottom:12px; display:none; align-items:center; gap:8px; }
+    .ohw-nudge.visible { display:flex; }
+    .ohw-nudge-short { background:#fefce8; border:1px solid #fde68a; }
+    .ohw-nudge-short p { margin:0; font-size:12px; color:#92400e; }
+    .ohw-nudge-good { background:#f0fdf4; border:1px solid #bbf7d0; }
+    .ohw-nudge-good p { margin:0; font-size:12px; color:#166534; }
+    .ohw-copy-btn {
+      width:100%; padding:14px; border-radius:10px; border:none;
+      background:#67308F; color:#fff; font-size:14px; font-weight:700;
+      cursor:pointer; font-family:'Wix Madefor Display',system-ui,sans-serif;
+    }
+    .ohw-copy-btn:disabled { background:#ddd; color:#999; cursor:not-allowed; }
+    .ohw-success-box { background:#f0fdf4; border:2px solid #22c55e; border-radius:10px; padding:16px 20px; margin-bottom:10px; }
+    .ohw-success-title { margin:0 0 4px; font-size:16px; font-weight:700; color:#16a34a; }
+    .ohw-success-text { margin:0; font-size:13px; color:#555; }
+    .ohw-inbox-link {
+      display:inline-block; padding:12px 28px; border-radius:8px;
+      background:#0E1C42; color:#fff; font-size:13px; font-weight:700; text-decoration:none;
+    }
+    .ohw-preview { border-top:1px solid #eee; padding:14px 24px; background:#fafafa; display:none; }
+    .ohw-preview.visible { display:block; }
+    .ohw-preview-label { margin:0 0 6px; font-size:11px; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:1px; }
+    .ohw-preview-text { margin:0; font-size:12px; color:#444; white-space:pre-wrap; line-height:1.6; font-family:'Wix Madefor Text',system-ui,sans-serif; }
+    .ohw-discussion-bar {
+      border:2px solid #e8e8e8; border-radius:12px; padding:16px 20px;
+      margin-top:12px; display:flex; align-items:center; gap:14px;
+    }
+    .ohw-discussion-bar:hover { border-color:#55C8E8; }
+    .ohw-discussion-icon {
+      width:40px; height:40px; border-radius:50%; background:#e8f7fc;
+      display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;
+    }
+    .ohw-discussion-text-primary { margin:0; font-size:14px; font-weight:600; color:#0E1C42; }
+    .ohw-discussion-text-secondary { margin:0; font-size:12px; color:#666; }
+    .ohw-discussion-link {
+      padding:8px 16px; border-radius:8px; background:#0E1C42; color:#fff;
+      font-size:12px; font-weight:700; text-decoration:none; white-space:nowrap; margin-left:auto;
+    }
+  </style>
+
+  <script>
+  (function() {
+    var w = document.getElementById('optima-help-widget');
+    var C = w.getAttribute('data-course');
+    var M = w.getAttribute('data-module');
+    var L = w.getAttribute('data-lesson');
+    var T = w.getAttribute('data-teacher');
+
+    // ===== UPDATE THESE URLs =====
+    var INBOX_URL = '/conversations#compose';
+    var DISC_URL  = '#';
+
+    var cats = [
+      {id:'stuck',   e:'🤔', l:"I'm stuck and need guidance",       p:"I've been working on this and I'm stuck at the following point:"},
+      {id:'confused', e:'📖', l:"I don't understand an idea",        p:"I'm having difficulty understanding this concept:"},
+      {id:'tech',    e:'💻', l:"Something technical isn't working", p:"I'm experiencing a technical issue:"},
+      {id:'other',   e:'💬', l:"I have a different question",       p:"I'd like to ask about:"}
+    ];
+    var sel = null, open = false, copied = false;
+
+    function msg(q) {
+      var c = cats.find(function(x){return x.id===sel;});
+      return 'Hi '+T+',\n\nI need help in '+C+' — '+M+' — '+L+'.\n\n'+(c?c.p:'My question is:')+'\n'+q+'\n\nThank you!';
+    }
+
+    function r() {
+      var h = '';
+      if (!open) {
+        h += '<button class="ohw-trigger" onclick="ohwO()"><div class="ohw-trigger-icon">🙋</div><div><p class="ohw-trigger-title">Need Help With This Lesson?</p><p class="ohw-trigger-sub">Asking for help is a sign of seriousness, not weakness. Tap here to write '+T+' — lesson details are included automatically.</p></div><span class="ohw-trigger-arrow">→</span></button>';
+      } else if (!copied) {
+        h += '<div class="ohw-panel"><div class="ohw-panel-header"><div class="ohw-panel-header-left"><span style="font-size:20px">🙋</span><div><p class="ohw-panel-title">Ask '+T+' for Help</p><p class="ohw-panel-subtitle">'+C+' · '+L+'</p></div></div><button class="ohw-close-btn" onclick="ohwX()">✕</button></div><div class="ohw-panel-body">';
+        h += '<div class="ohw-context"><span style="font-size:16px">📍</span><div><p class="ohw-context-label">Auto-Included Context</p><p class="ohw-context-detail">'+C+' → '+M+' → '+L+'</p></div><span class="ohw-context-badge">✓ Attached</span></div>';
+        h += '<p style="margin:0 0 8px;font-size:13px;font-weight:700;color:#0E1C42;">What kind of help do you need?</p><div class="ohw-categories">';
+        for(var i=0;i<cats.length;i++){var c=cats[i];h+='<button class="ohw-cat-btn'+(sel===c.id?' active':'')+'" onclick="ohwC(\''+c.id+'\')"><span class="ohw-cat-emoji">'+c.e+'</span><span class="ohw-cat-label">'+c.l+'</span></button>';}
+        h += '</div>';
+        h += '<div class="ohw-question-area'+(sel?' visible':'')+'">';
+        if(sel){var c=cats.find(function(x){return x.id===sel;});h+='<p class="ohw-prompt-label">'+c.p+'</p>';}
+        h += '<textarea class="ohw-textarea" id="ohw-q" oninput="ohwN()" placeholder="Be as specific as you can — what step are you on? What did you try? What happened?"></textarea>';
+        h += '<div class="ohw-nudge ohw-nudge-short" id="ohw-ns"><span style="font-size:14px">💡</span><p>Good — you\'ve started. Can you be more specific? The clearer your question, the more helpful the answer.</p></div>';
+        h += '<div class="ohw-nudge ohw-nudge-good" id="ohw-ng"><span style="font-size:14px">👍</span><p>That\'s a well-formed question. Your teacher will be able to help you effectively.</p></div>';
+        h += '<button class="ohw-copy-btn" id="ohw-cb" onclick="ohwCP()" disabled>📋 Copy Message &amp; Open Inbox</button></div>';
+        h += '</div><div class="ohw-preview" id="ohw-pv"><p class="ohw-preview-label">Preview: What '+T+' will receive</p><pre class="ohw-preview-text" id="ohw-pt"></pre></div></div>';
+      } else {
+        h += '<div class="ohw-panel"><div class="ohw-panel-header"><div class="ohw-panel-header-left"><span style="font-size:20px">🙋</span><div><p class="ohw-panel-title">Ask '+T+' for Help</p><p class="ohw-panel-subtitle">'+C+' · '+L+'</p></div></div><button class="ohw-close-btn" onclick="ohwX()">✕</button></div><div class="ohw-panel-body" style="text-align:center"><div class="ohw-success-box"><p class="ohw-success-title">✓ Message Copied!</p><p class="ohw-success-text">Now paste it into your Canvas Inbox message to '+T+'.</p></div><a href="'+INBOX_URL+'" target="_blank" class="ohw-inbox-link">Open Canvas Inbox →</a></div></div>';
+      }
+      h += '<div class="ohw-discussion-bar"><div class="ohw-discussion-icon">💬</div><div style="flex:1"><p class="ohw-discussion-text-primary">Have a general question?</p><p class="ohw-discussion-text-secondary">Post in the class Seminar Discussion — thinking aloud together is how we learn.</p></div><a href="'+DISC_URL+'" class="ohw-discussion-link">Go to Discussion →</a></div>';
+      w.innerHTML = h;
+    }
+
+    window.ohwO = function(){open=true;copied=false;sel=null;r();};
+    window.ohwX = function(){open=false;copied=false;sel=null;r();};
+    window.ohwC = function(id){sel=id;r();var t=document.getElementById('ohw-q');if(t)t.focus();};
+    window.ohwN = function(){
+      var t=document.getElementById('ohw-q'),v=t?t.value:'',n=v.length;
+      var ns=document.getElementById('ohw-ns'),ng=document.getElementById('ohw-ng'),cb=document.getElementById('ohw-cb'),pv=document.getElementById('ohw-pv'),pt=document.getElementById('ohw-pt');
+      if(n>0&&n<30){ns.classList.add('visible');ng.classList.remove('visible');}
+      else if(n>=30){ns.classList.remove('visible');ng.classList.add('visible');}
+      else{ns.classList.remove('visible');ng.classList.remove('visible');}
+      cb.disabled=n<5;
+      if(n>=5){pv.classList.add('visible');pt.textContent=msg(v);}else{pv.classList.remove('visible');}
+    };
+    window.ohwCP = function(){
+      var t=document.getElementById('ohw-q'),m=msg(t?t.value:'');
+      if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(m).then(function(){copied=true;r();});}
+      else{var x=document.createElement('textarea');x.value=m;document.body.appendChild(x);x.select();document.execCommand('copy');document.body.removeChild(x);copied=true;r();}
+    };
+    r();
+  })();
+  </script>
+
+  <!-- ============================================================ -->
+  <!-- CANVAS CODE END -->
+  <!-- ============================================================ -->
+
+  <!-- IMPLEMENTATION REFERENCE -->
+  <div class="copy-code-section">
+    <h2>Implementation Reference</h2>
+    <p><span>What to copy:</span> Everything between the CANVAS CODE START and CANVAS CODE END comments above. This includes the widget div, all CSS, and all JavaScript.</p>
+    <p><span>Per-lesson setup:</span> Change the four data- attributes: <code style="background:rgba(85,200,232,0.2);color:#55C8E8;padding:2px 6px;border-radius:4px;font-size:11px;">data-course</code>, <code style="background:rgba(85,200,232,0.2);color:#55C8E8;padding:2px 6px;border-radius:4px;font-size:11px;">data-module</code>, <code style="background:rgba(85,200,232,0.2);color:#55C8E8;padding:2px 6px;border-radius:4px;font-size:11px;">data-lesson</code>, and <code style="background:rgba(85,200,232,0.2);color:#55C8E8;padding:2px 6px;border-radius:4px;font-size:11px;">data-teacher</code>.</p>
+    <p><span>URLs to update:</span> Set INBOX_URL to your Canvas conversations compose link. Set DISC_URL to your course's help discussion page.</p>
+    <p><span>Subject colors:</span> Find-and-replace #67308F (accent) and #f0e6f6 (light) with your subject's colors from the Optima brand guide.</p>
+    <p><span>If Canvas blocks scripts:</span> Move the JavaScript into your Canvas theme's custom JS file (requires admin), or replace with an embedded Microsoft Form using pre-filled URL parameters for course, module, and lesson fields.</p>
+  </div>
+
+</div>
+</body>
+</html>
